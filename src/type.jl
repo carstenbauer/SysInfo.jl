@@ -62,12 +62,6 @@ function System(topo::Hwloc.Object)
     return System(matrix)
 end
 
-# querying
-ncputhreads(sys::System) = size(sys.matrix, 1)
-ncores(sys::System) = maximum(@view(sys.matrix[:, ICORE]))
-nnuma(sys::System) = maximum(@view(sys.matrix[:, INUMA]))
-nsockets(sys::System) = maximum(@view(sys.matrix[:, ISOCKET]))
-
 # pretty printing
 function Base.show(io::IO, sys::System)
     println(io, summary(sys))

@@ -1,9 +1,8 @@
 module SysInfo
 
-using PrettyTables
-using Hwloc
+include("api.jl")
+include("implementation.jl")
 
-include("type.jl")
-# include("api.jl")
+export ncputhreads, ncores, nsockets, nnuma, hyperthreading_is_enabled
 
 end
