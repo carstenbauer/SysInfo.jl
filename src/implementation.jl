@@ -1,6 +1,6 @@
 module Implementation
 
-import SysInfo: ncputhreads
+import SysInfo: ncputhreads, ncores, nnuma, nsockets, hyperthreading_is_enabled
 
 using PrettyTables: pretty_table
 using Hwloc: Hwloc, gettopology, hwloc_isa, num_virtual_cores
