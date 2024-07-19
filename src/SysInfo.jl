@@ -1,5 +1,9 @@
 module SysInfo
 
-# Write your package code here.
+using PrettyTables
+using Hwloc
+
+include("type.jl")
+# include("api.jl")
 
 end
