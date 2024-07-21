@@ -12,3 +12,6 @@ function nnuma end
 
 "Number of CPU sockets"
 function nsockets end
+
+"Prints an overview of the system."
+function sysinfo end
