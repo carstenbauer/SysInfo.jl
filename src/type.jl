@@ -63,7 +63,7 @@ function System(topo::Hwloc.Object)
 end
 
 # pretty printing
-function Base.show(io::IO, sys::System)
-    println(io, summary(sys))
-    pretty_table(io, sys.matrix; header = [:ID, :OSID, :CORE, :NUMA, :SOCKET, :SMT])
-end
+# function Base.show(io::IO, sys::System)
+#     println(io, summary(sys))
+#     pretty_table(io, sys.matrix; header = [:ID, :OSID, :CORE, :NUMA, :SOCKET, :SMT])
+# end

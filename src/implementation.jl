@@ -2,7 +2,6 @@ module Implementation
 
 import SysInfo: ncputhreads, ncores, nnuma, nsockets, hyperthreading_is_enabled, sysinfo
 
-using PrettyTables: pretty_table
 using Hwloc: Hwloc, gettopology, hwloc_isa, num_virtual_cores
 
 include("type.jl")
