@@ -58,6 +58,8 @@ function nnuma_within_socket(socket::Integer; sys::System = getsystem())
     )
 end
 
+ngpus(; sys::System = getsystem()) = sys.ngpus
+
 maxsmt(; sys) = maximum(@view(sys.matrix[:, ISMT]))
 
 cpukind() = Sys.cpu_info()[1].model
@@ -91,6 +93,8 @@ function sysinfo(; sys::System = getsystem())
             println("\t → CPU ", socket, ": ", n, " NUMA domain", n > 1 ? "s" : "")
         end
     end
+    println()
+    println("Detected GPUs: ", ngpus(; sys))
     return
 end
 
