@@ -68,12 +68,6 @@ function System(topo::Hwloc.Object)
     return System(matrix, ngpus)
 end
 
-# pretty printing
-# function Base.show(io::IO, sys::System)
-#     println(io, summary(sys))
-#     pretty_table(io, sys.matrix; header = [:ID, :OSID, :CORE, :NUMA, :SOCKET, :SMT])
-# end
-
 
 # lscpu backend
 function lscpu_string()
@@ -185,7 +179,7 @@ function System(lscpu_string::AbstractString)
 end
 
 
-
+# consistency check
 function check_consistency_backends()
     sys_hwloc = System(Hwloc.gettopology())
     sys_lscpu = System(lscpu_string())
