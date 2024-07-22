@@ -8,9 +8,15 @@ include("type.jl")
 
 const sys = Ref{Union{Nothing,System}}(nothing)
 
-function getsystem()
+function getsystem(; backend = nothing) # default backend
     if isnothing(sys[])
-        sys[] = System()
+        if backend == :hwloc
+            sys[] = System(Hwloc.gettopology())
+        elseif backend == :lscpu
+            sys[] = System(lscpu_string())
+        else
+            sys[] = System()
+        end
     end
     return sys[]
 end
