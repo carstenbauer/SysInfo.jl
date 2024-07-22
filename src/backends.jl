@@ -8,6 +8,7 @@ struct System
     #   * SMT (logical, i.e. starts at 1): order of SMT threads within their respective core
     #   * EFFICIENCY RANK (logical, i.e. starts at 1): smaller values means higher efficiency (if there are different efficiency cores)
     matrix::Matrix{Int}
+    matrix_noncompact::Matrix{Int} # same as matrix but sorted by ISMT (i.e. cores before hyperthreads)
     ngpus::Int
 end
 
@@ -74,7 +75,9 @@ function System(topo::Hwloc.Object)
             ngpus += 1
         end
     end
-    return System(matrix, ngpus)
+    @assert @view(matrix[:, IID]) == 1:num_virtual_cores()
+    matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
+    return System(matrix, matrix_noncompact, ngpus)
 end
 
 function _ith_in_mask(mask::Culong, i::Integer)
@@ -203,7 +206,8 @@ function System(lscpu_string::AbstractString)
         matrix[row, ISMT] = counters[core]
         counters[core] += 1
     end
-    return System(matrix, -1)
+    matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
+    return System(matrix, matrix_noncompact, -1)
 end
 
 

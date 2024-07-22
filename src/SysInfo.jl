@@ -1,12 +1,13 @@
 module SysInfo
 
-include("utils.jl")
+include("public_macro.jl")
 include("api.jl")
 include("internals.jl")
 
 # public API
 export sysinfo
-@public ncputhreads, ncores, nsockets, nnuma, hyperthreading_is_enabled
+@public ncputhreads, ncores, nsockets, nnuma, ncorekinds, hyperthreading_is_enabled
+@public core, numa, socket, node, cores, sockets, numas
 
 # precompile
 import PrecompileTools
