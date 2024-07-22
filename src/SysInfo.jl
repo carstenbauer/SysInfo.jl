@@ -1,11 +1,14 @@
 module SysInfo
 
+include("utils.jl")
 include("api.jl")
 include("implementation.jl")
 
-export ncputhreads, ncores, nsockets, nnuma, hyperthreading_is_enabled, sysinfo
-
 import .Implementation: clear_cache
+
+# public API
+export sysinfo
+@public ncputhreads, ncores, nsockets, nnuma, hyperthreading_is_enabled
 
 # precompile
 import PrecompileTools
