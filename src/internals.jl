@@ -9,7 +9,7 @@ include("backends.jl")
 
 const sys = Ref{Union{Nothing,System}}(nothing)
 
-function getsystem(; reload=false, backend = nothing) # default backend
+function getsystem(; reload = false, backend = nothing) # default backend
     if isnothing(sys[]) || reload
         if backend == :hwloc
             sys[] = System(Hwloc.gettopology())
@@ -64,45 +64,66 @@ function nnuma_within_socket(socket::Integer; sys::System = getsystem())
         ),
     )
 end
+function ncores_of_kind(kind::Integer; sys::System = getsystem())
+    return count(r -> r[IEFFICIENCY] == kind && r[ISMT] == 1, eachrow(sys.matrix))
+end
 
 ngpus(; sys::System = getsystem()) = sys.ngpus
 
 maxsmt(; sys) = maximum(@view(sys.matrix[:, ISMT]))
 
+ncorekinds(; sys) = maximum(@view(sys.matrix[:, IEFFICIENCY]))
+
 cpukind() = Sys.cpu_info()[1].model
 
 function sysinfo(; sys::System = getsystem())
-    println("Hostname: ", gethostname())
-    println("CPU kind: ", cpukind())
-    println()
-    println(
-        "$(ncores(; sys)) physical ($(ncputhreads(; sys)) virtual) cores distributed over $(nsockets(; sys)) CPU",
-        nsockets(; sys) > 1 ? "s" : "",
-    )
-    if nsockets(; sys) > 1
-        for socket = 1:nsockets(; sys)
-            println(
-                "\t → CPU ",
-                socket,
-                ": ",
-                ncores_within_socket(socket; sys),
-                " physical (",
-                ncputhreads_within_socket(socket; sys),
-                " virtual) cores",
-            )
+    println("Hostname: \t", gethostname())
+    ncpus = nsockets(; sys)
+    println("CPU(s): \t$(ncpus) x ", cpukind())
+    if ncpus > 1
+        println(
+            "Cores: \t\t$(ncores(; sys)) physical ($(ncputhreads(; sys)) virtual) cores",
+        )
+        if ncorekinds(; sys) != 1
+            if ncorekinds(; sys) == 2
+                println(
+                    "Core kinds: \t",
+                    ncores_of_kind(1; sys),
+                    " \"efficiency cores\", ",
+                    ncores_of_kind(2; sys),
+                    " \"performance cores\".",
+                )
+            end
         end
-    end
-    println()
-    println("NUMA domains: ", nnuma(; sys))
-    if nsockets(; sys) > 1
-        for socket = 1:nsockets(; sys)
-            n = nnuma_within_socket(socket; sys)
-            println("\t → CPU ", socket, ": ", n, " NUMA domain", n > 1 ? "s" : "")
-        end
+        println("NUMA domains: \t", nnuma(; sys))
     end
     if ngpus(; sys) > 0
-        println()
-        println("Detected GPUs: ", ngpus(; sys))
+        println("Detected GPUs: \t", ngpus(; sys))
+    end
+
+    println()
+    for socket = 1:nsockets(; sys)
+        println("∘ CPU ", socket, ": ")
+        println(
+            "\t→ ",
+            ncores_within_socket(socket; sys),
+            " physical (",
+            ncputhreads_within_socket(socket; sys),
+            " virtual) cores",
+        )
+        if ncorekinds(; sys) != 1
+            if ncorekinds(; sys) == 2
+                println(
+                    "\t→ ",
+                    ncores_of_kind(1; sys),
+                    " \"efficiency cores\", ",
+                    ncores_of_kind(2; sys),
+                    " \"performance cores\".",
+                )
+            end
+        end
+        n = nnuma_within_socket(socket; sys)
+        println("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
     end
     return
 end

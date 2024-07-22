@@ -6,6 +6,7 @@ struct System
     #   * NUMA (logical, i.e. starts at 1)
     #   * SOCKET (logical, i.e. starts at 1)
     #   * SMT (logical, i.e. starts at 1): order of SMT threads within their respective core
+    #   * EFFICIENCY RANK (logical, i.e. starts at 1): smaller values means higher efficiency (if there are different efficiency cores)
     matrix::Matrix{Int}
     ngpus::Int
 end
@@ -17,6 +18,7 @@ const ICORE = 3
 const INUMA = 4
 const ISOCKET = 5
 const ISMT = 6
+const IEFFICIENCY = 7
 
 # default to hwloc backend
 System() = System(Hwloc.gettopology())
@@ -31,6 +33,8 @@ function System(topo::Hwloc.Object)
         )
     end
 
+    cks = Hwloc.get_cpukind_info()
+    has_multiple_cpu_kinds = !isempty(cks)
     local isocket
     local icore
     local ismt
@@ -39,7 +43,7 @@ function System(topo::Hwloc.Object)
     inuma = 0
     row = 1
     ngpus = 0
-    matrix = fill(-1, (num_virtual_cores(), 6))
+    matrix = fill(-1, (num_virtual_cores(), 7))
     for obj in topo
         hwloc_isa(obj, :Package) && (isocket = obj.logical_index + 1)
         hwloc_isa(obj, :NUMANode) && (inuma += 1)
@@ -56,6 +60,11 @@ function System(topo::Hwloc.Object)
             matrix[row, INUMA] = inuma
             matrix[row, ISOCKET] = isocket
             matrix[row, ISMT] = ismt
+            if has_multiple_cpu_kinds
+                matrix[row, IEFFICIENCY] = osid2cpukind(osid; cks)
+            else
+                matrix[row, IEFFICIENCY] = 1
+            end
             row += 1
             ismt += 1
         end
@@ -66,6 +75,24 @@ function System(topo::Hwloc.Object)
         end
     end
     return System(matrix, ngpus)
+end
+
+function _ith_in_mask(mask::Culong, i::Integer)
+    # i starts at 0
+    imask = Culong(0) | (1 << i)
+    return !iszero(mask & imask)
+end
+
+function osid2cpukind(i; cks = Hwloc.get_cpukind_info())
+    for (kind, x) in enumerate(cks)
+        for (k, mask) in enumerate(x.masks)
+            offset = (k - 1) * sizeof(Clong) * 8
+            if _ith_in_mask(mask, i - offset)
+                return kind
+            end
+        end
+    end
+    return -1
 end
 
 
@@ -160,6 +187,7 @@ function System(lscpu_string::AbstractString)
         [numamap[n] for n in cols.numa],
         [socketmap[s] for s in cols.socket],
         zeros(Int64, ncputhreads),
+        ones(Int64, ncputhreads),
     )
 
     # goal: same logical indices as for hwloc (compact order)
@@ -184,8 +212,8 @@ function check_consistency_backends()
     sys_hwloc = System(Hwloc.gettopology())
     sys_lscpu = System(lscpu_string())
     # sort all by OS ID
-    mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])
-    mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])
+    mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
+    mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
     # compare
     return mat_hwloc == mat_lscpu
 end
