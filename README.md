@@ -2,6 +2,10 @@
 
 [![Build Status](https://github.com/carstenbauer/SysInfo.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/carstenbauer/SysInfo.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
+This package will be a backend of [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl). However, you may use it directly to obtain core information about the compute system at hand (number of physical cores, NUMA domains, etc.).
+
+## Usage
+
 ```julia
 julia> using SysInfo
 
@@ -22,3 +26,7 @@ Detected GPUs: 1
 julia> SysInfo.ncores() # programmatic access, public API but not exported
 128
 ```
+
+## Backend
+
+As of now, SysInfo.jl is based only on [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl). In the future, we might add more sources of truth.
