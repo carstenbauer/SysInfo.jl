@@ -4,7 +4,7 @@ include("utils.jl")
 include("api.jl")
 include("implementation.jl")
 
-import .Implementation: clear_cache, getsystem, ngpus
+import .Implementation: clear_cache, getsystem, ngpus, check_consistency_backends
 
 # public API
 export sysinfo

@@ -28,20 +28,20 @@ function clear_cache()
 end
 
 # querying
-function getsortedby(getidx, byidx; sys = getsystem(), kwargs...)
-    @views sortslices(sys.matrix; dims = 1, by = x -> x[byidx], kwargs...)[:, getidx]
-end
-function getsortedby(getidx, bytuple::Tuple; sys = getsystem(), kwargs...)
-    @views sortslices(
-        sys.matrix;
-        dims = 1,
-        by = x -> Tuple(x[i] for i in bytuple),
-        kwargs...,
-    )[
-        :,
-        getidx,
-    ]
-end
+# function getsortedby(getidx, byidx; sys = getsystem(), kwargs...)
+#     @views sortslices(sys.matrix; dims = 1, by = x -> x[byidx], kwargs...)[:, getidx]
+# end
+# function getsortedby(getidx, bytuple::Tuple; sys = getsystem(), kwargs...)
+#     @views sortslices(
+#         sys.matrix;
+#         dims = 1,
+#         by = x -> Tuple(x[i] for i in bytuple),
+#         kwargs...,
+#     )[
+#         :,
+#         getidx,
+#     ]
+# end
 ncputhreads(; sys::System = getsystem()) = size(sys.matrix, 1)
 ncores(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ICORE]))
 nnuma(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, INUMA]))
@@ -105,6 +105,16 @@ function sysinfo(; sys::System = getsystem())
         println("Detected GPUs: ", ngpus(; sys))
     end
     return
+end
+
+function check_consistency_backends()
+    sys_hwloc = System(Hwloc.gettopology())
+    sys_lscpu = System(lscpu_string())
+    # sort all by OS ID
+    mat_hwloc = sortslices(sys_hwloc.matrix, dims=1, by = x -> x[IOSID])
+    mat_lscpu = sortslices(sys_lscpu.matrix, dims=1, by = x -> x[IOSID])
+    # compare
+    return mat_hwloc == mat_lscpu
 end
 
 end
