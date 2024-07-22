@@ -25,6 +25,15 @@ Detected GPUs: 1
 
 julia> SysInfo.ncores() # programmatic access, public API but not exported
 128
+
+julia> SysInfo.ncputhreads()
+256
+
+julia> SysInfo.nsockets()
+2
+
+julia> SysInfo.nnuma()
+8
 ```
 
 ## Backend
