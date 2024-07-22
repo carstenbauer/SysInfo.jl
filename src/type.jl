@@ -19,7 +19,7 @@ const ISOCKET = 5
 const ISMT = 6
 
 # default to hwloc backend
-System() = System(Hwloc.gettopology(; io = false))
+System() = System(Hwloc.gettopology())
 
 # hwloc backend
 function System(topo::Hwloc.Object)
