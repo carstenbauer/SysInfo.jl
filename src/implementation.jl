@@ -3,13 +3,14 @@ module Implementation
 import SysInfo: ncputhreads, ncores, nnuma, nsockets, hyperthreading_is_enabled, sysinfo
 
 using Hwloc: Hwloc, gettopology, hwloc_isa, num_virtual_cores
+using DelimitedFiles: readdlm
 
 include("type.jl")
 
 const sys = Ref{Union{Nothing,System}}(nothing)
 
-function getsystem(; backend = nothing) # default backend
-    if isnothing(sys[])
+function getsystem(; reload=false, backend = nothing) # default backend
+    if isnothing(sys[]) || reload
         if backend == :hwloc
             sys[] = System(Hwloc.gettopology())
         elseif backend == :lscpu
