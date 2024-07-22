@@ -155,16 +155,22 @@ function System(lscpu_string::AbstractString)
     numaids = unique(cols.numa)
     socketids = unique(cols.socket)
     # TODO cols might not be sorted?!
-    coremap = Dict{Int, Int}(n => i for (i, n) in enumerate(coreids))
-    numamap = Dict{Int, Int}(n => i for (i, n) in enumerate(numaids))
-    socketmap = Dict{Int, Int}(n => i for (i, n) in enumerate(socketids))
+    coremap = Dict{Int,Int}(n => i for (i, n) in enumerate(coreids))
+    numamap = Dict{Int,Int}(n => i for (i, n) in enumerate(numaids))
+    socketmap = Dict{Int,Int}(n => i for (i, n) in enumerate(socketids))
 
-    matrix = hcat(1:ncputhreads, cols.cpuid, [coremap[c] for c in cols.core],
-                  [numamap[n] for n in cols.numa],
-                  [socketmap[s] for s in cols.socket],
-                  zeros(Int64, ncputhreads))
+    matrix = hcat(
+        1:ncputhreads,
+        cols.cpuid,
+        [coremap[c] for c in cols.core],
+        [numamap[n] for n in cols.numa],
+        [socketmap[s] for s in cols.socket],
+        zeros(Int64, ncputhreads),
+    )
 
-    matrix = sortslices(matrix; dims=1, by = x->x[3]) # goal: same logical indices as for hwloc
+    # goal: same logical indices as for hwloc (compact order)
+    matrix = sortslices(matrix; dims = 1, by = x -> x[3])
+    matrix[:, 1] .= 1:ncputhreads
 
     # enumerate hyperthreads
     counters = ones(Int, ncores)
@@ -176,4 +182,16 @@ function System(lscpu_string::AbstractString)
         counters[core] += 1
     end
     return System(matrix, -1)
+end
+
+
+
+function check_consistency_backends()
+    sys_hwloc = System(Hwloc.gettopology())
+    sys_lscpu = System(lscpu_string())
+    # sort all by OS ID
+    mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])
+    mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])
+    # compare
+    return mat_hwloc == mat_lscpu
 end

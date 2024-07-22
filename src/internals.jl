@@ -5,7 +5,7 @@ import SysInfo: ncputhreads, ncores, nnuma, nsockets, hyperthreading_is_enabled,
 using Hwloc: Hwloc, gettopology, hwloc_isa, num_virtual_cores
 using DelimitedFiles: readdlm
 
-include("type.jl")
+include("backends.jl")
 
 const sys = Ref{Union{Nothing,System}}(nothing)
 
@@ -105,16 +105,6 @@ function sysinfo(; sys::System = getsystem())
         println("Detected GPUs: ", ngpus(; sys))
     end
     return
-end
-
-function check_consistency_backends()
-    sys_hwloc = System(Hwloc.gettopology())
-    sys_lscpu = System(lscpu_string())
-    # sort all by OS ID
-    mat_hwloc = sortslices(sys_hwloc.matrix, dims=1, by = x -> x[IOSID])
-    mat_lscpu = sortslices(sys_lscpu.matrix, dims=1, by = x -> x[IOSID])
-    # compare
-    return mat_hwloc == mat_lscpu
 end
 
 end
