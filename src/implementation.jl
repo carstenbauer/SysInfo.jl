@@ -93,8 +93,10 @@ function sysinfo(; sys::System = getsystem())
             println("\t → CPU ", socket, ": ", n, " NUMA domain", n > 1 ? "s" : "")
         end
     end
-    println()
-    println("Detected GPUs: ", ngpus(; sys))
+    if ngpus(; sys) > 0
+        println()
+        println("Detected GPUs: ", ngpus(; sys))
+    end
     return
 end
 
