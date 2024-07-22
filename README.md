@@ -6,22 +6,24 @@ This package will be a backend of [ThreadPinning.jl](https://github.com/carstenb
 
 ## Usage
 
+On a Perlmutter (NERSC) login node:
+
 ```julia
 julia> using SysInfo
 
 julia> sysinfo() # only exported function
-Hostname: login17
-CPU: AMD EPYC 7713 64-Core Processor
+Hostname:       login17
+CPU(s):         2 x AMD EPYC 7713 64-Core Processor
+Cores:          128 physical (256 virtual) cores
+NUMA domains:   8
+Detected GPUs:  1
 
-128 physical (256 virtual) cores distributed over 2 CPUs
-         → CPU 1: 64 physical (128 virtual) cores
-         → CPU 2: 64 physical (128 virtual) cores
-
-NUMA domains: 8
-         → CPU 1: 4 NUMA domains
-         → CPU 2: 4 NUMA domains
-
-Detected GPUs: 1
+∘ CPU 1:
+        → 64 physical (128 virtual) cores
+        → 4 NUMA domains
+∘ CPU 2:
+        → 64 physical (128 virtual) cores
+        → 4 NUMA domains
 
 julia> SysInfo.ncores() # programmatic access, public API but not exported
 128
