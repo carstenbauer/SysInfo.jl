@@ -4,7 +4,7 @@ include("utils.jl")
 include("api.jl")
 include("implementation.jl")
 
-import .Implementation: clear_cache
+import .Implementation: clear_cache, getsystem
 
 # public API
 export sysinfo

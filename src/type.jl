@@ -7,6 +7,7 @@ struct System
     #   * SOCKET (logical, i.e. starts at 1)
     #   * SMT (logical, i.e. starts at 1): order of SMT threads within their respective core
     matrix::Matrix{Int}
+    ngpus::Int
 end
 
 # helper indices for indexing into the system matrix
@@ -37,6 +38,7 @@ function System(topo::Hwloc.Object)
     local osid
     inuma = 0
     row = 1
+    ngpus = 0
     matrix = fill(-1, (num_virtual_cores(), 6))
     for obj in topo
         hwloc_isa(obj, :Package) && (isocket = obj.logical_index + 1)
@@ -57,9 +59,13 @@ function System(topo::Hwloc.Object)
             row += 1
             ismt += 1
         end
+        # try detect number of GPUs
+        if hwloc_isa(obj, :PCI_Device) &&
+           Hwloc.hwloc_pci_class_string(obj.attr.class_id) == "3D"
+            ngpus += 1
+        end
     end
-    # @assert @view(matrix[:, 1]) == 1:num_virtual_cores()
-    return System(matrix)
+    return System(matrix, ngpus)
 end
 
 # pretty printing
