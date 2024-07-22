@@ -1,6 +1,6 @@
 struct System
     # Columns of the sysinfo matrix (in that order):
-    #   * ID (logical, i.e. starts at 1)
+    #   * ID (logical, i.e. starts at 1, compact order)
     #   * OSID ("physical", i.e. starts at 0)
     #   * CORE (logical, i.e. starts at 1)
     #   * NUMA (logical, i.e. starts at 1)
@@ -163,6 +163,8 @@ function System(lscpu_string::AbstractString)
                   [numamap[n] for n in cols.numa],
                   [socketmap[s] for s in cols.socket],
                   zeros(Int64, ncputhreads))
+
+    matrix = sortslices(matrix; dims=1, by = x->x[3]) # goal: same logical indices as for hwloc
 
     # enumerate hyperthreads
     counters = ones(Int, ncores)

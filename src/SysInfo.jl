@@ -2,9 +2,9 @@ module SysInfo
 
 include("utils.jl")
 include("api.jl")
-include("implementation.jl")
+include("internals.jl")
 
-import .Implementation: clear_cache, getsystem, ngpus, check_consistency_backends
+import .Internals: clear_cache, getsystem, ngpus, check_consistency_backends
 
 # public API
 export sysinfo

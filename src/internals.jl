@@ -1,4 +1,4 @@
-module Implementation
+module Internals
 
 import SysInfo: ncputhreads, ncores, nnuma, nsockets, hyperthreading_is_enabled, sysinfo
 
