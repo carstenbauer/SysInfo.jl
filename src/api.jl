@@ -91,3 +91,9 @@ Returns the logical index (starts at 1) that corresponds to the given
 CPU ID ("physical" OS index).
 """
 function id end
+
+"""
+Returns the CPU ID ("physical" OS index) that corresponds to the given
+logical index (starts at 1).
+"""
+function cpuid end
