@@ -8,7 +8,7 @@ This package will be a backend of [ThreadPinning.jl](https://github.com/carstenb
 
 On a Perlmutter (NERSC) login node:
 
-```julia
+```julia-repl
 julia> using SysInfo
 
 julia> sysinfo() # only exported function
@@ -40,7 +40,7 @@ julia> SysInfo.nnuma()
 
 On a Mac mini M1:
 
-```julia
+```julia-repl
 julia> sysinfo()
 Hostname:       pc2macmini.fritz.box
 CPU(s):         1 x Apple M1
