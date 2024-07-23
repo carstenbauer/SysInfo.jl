@@ -106,3 +106,9 @@ Check whether the given CPU-thread is a SMT-thread / "hyperthread" (i.e. it is n
 first CPU-thread in the CPU-core).
 """
 function ishyperthread end
+
+"""
+Returns the logical index (starting at 1) of the NUMA node corresponding to the given
+CPU ID (CPU-thread).
+"""
+function cpuid_to_numanode end

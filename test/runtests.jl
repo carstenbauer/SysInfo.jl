@@ -10,6 +10,7 @@ using Test
     @test SysInfo.ncorekinds() > 0
     @test SysInfo.id(SysInfo.cpuid(1)) == 1
     @test SysInfo.ishyperthread(SysInfo.cpuid(1)) isa Bool
+    @test SysInfo.cpuid_to_numanode(SysInfo.cpuid(1)) == 1
 
     @test isnothing(sysinfo()) # exported
 
