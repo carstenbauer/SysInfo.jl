@@ -4,6 +4,8 @@ include("public_macro.jl")
 include("api.jl")
 include("internals.jl")
 
+import .Internals: cpuids_all
+
 # public API
 export sysinfo
 @public ncputhreads, ncores, nsockets, nnuma, ncorekinds, hyperthreading_is_enabled
