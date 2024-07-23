@@ -76,7 +76,6 @@ function System(topo::Hwloc.Object)
         end
     end
     @assert @view(matrix[:, IID]) == 1:num_virtual_cores()
-    @assert num_virtual_cores() == Sys.CPU_THREADS
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(matrix, matrix_noncompact, ngpus)
 end
@@ -208,7 +207,6 @@ function System(lscpu_string::AbstractString)
         counters[core] += 1
     end
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
-    @assert ncputhreads == Sys.CPU_THREADS
     return System(matrix, matrix_noncompact, -1)
 end
 
