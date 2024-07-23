@@ -171,31 +171,7 @@ end
 
 
 function SysInfo.sysinfo(; sys::System = getsystem())
-    cpukind = () -> Sys.cpu_info()[1].model
-
-    println("Hostname: \t", gethostname())
-    ncpus = SysInfo.nsockets(; sys)
-    println("CPU(s): \t$(ncpus) x ", cpukind())
-    if ncpus > 1
-        println(
-            "Cores: \t\t$(SysInfo.ncores(; sys)) physical ($(SysInfo.ncputhreads(; sys)) virtual) cores",
-        )
-        if SysInfo.ncorekinds(; sys) != 1
-            if SysInfo.ncorekinds(; sys) == 2
-                println(
-                    "Core kinds: \t",
-                    ncores_of_kind(1; sys),
-                    " \"efficiency cores\", ",
-                    ncores_of_kind(2; sys),
-                    " \"performance cores\".",
-                )
-            end
-        end
-        println("NUMA domains: \t", SysInfo.nnuma(; sys))
-    end
-    if ngpus(; sys) > 0
-        println("Detected GPUs: \t", ngpus(; sys))
-    end
+    _print_sysinfo_header(; sys)
 
     println()
     for socket = 1:SysInfo.nsockets(; sys)
@@ -222,6 +198,34 @@ function SysInfo.sysinfo(; sys::System = getsystem())
         println("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
     end
     return
+end
+
+function _print_sysinfo_header(; io = stdout, sys::System = getsystem())
+    cpukind = () -> Sys.cpu_info()[1].model
+
+    println("Hostname: \t", gethostname())
+    ncpus = SysInfo.nsockets(; sys)
+    println("CPU(s): \t$(ncpus) x ", cpukind())
+    if ncpus > 1
+        println(
+            "Cores: \t\t$(SysInfo.ncores(; sys)) physical ($(SysInfo.ncputhreads(; sys)) virtual) cores",
+        )
+        if SysInfo.ncorekinds(; sys) != 1
+            if SysInfo.ncorekinds(; sys) == 2
+                println(
+                    "Core kinds: \t",
+                    ncores_of_kind(1; sys),
+                    " \"efficiency cores\", ",
+                    ncores_of_kind(2; sys),
+                    " \"performance cores\".",
+                )
+            end
+        end
+        println("NUMA domains: \t", SysInfo.nnuma(; sys))
+    end
+    if ngpus(; sys) > 0
+        println("Detected GPUs: \t", ngpus(; sys))
+    end
 end
 
 # High-level API for accessing cpuids
