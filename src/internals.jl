@@ -168,6 +168,11 @@ function SysInfo.cpuid_to_numanode(cpuid::Integer; sys::System = getsystem())
     isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
     return sys.matrix[id, INUMA]
 end
+function SysInfo.cpuid_to_efficiency(cpuid::Integer; sys::System = getsystem())
+    id = SysInfo.id(cpuid)
+    isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
+    return sys.matrix[id, IEFFICIENCY]
+end
 
 
 function SysInfo.sysinfo(; sys::System = getsystem())

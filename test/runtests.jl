@@ -11,6 +11,7 @@ using Test
     @test SysInfo.id(SysInfo.cpuid(1)) == 1
     @test SysInfo.ishyperthread(SysInfo.cpuid(1)) isa Bool
     @test SysInfo.cpuid_to_numanode(SysInfo.cpuid(1)) == 1
+    @test SysInfo.cpuid_to_efficiency(SysInfo.cpuid(1)) == 1
 
     @test isnothing(sysinfo()) # exported
 

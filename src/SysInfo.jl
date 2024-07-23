@@ -11,7 +11,7 @@ export sysinfo
 @public ncputhreads, ncores, nsockets, nnuma, ncorekinds
 @public hyperthreading_is_enabled, ishyperthread
 @public core, numa, socket, node, cores, sockets, numas
-@public id, cpuid, cpuid_to_numanode
+@public id, cpuid, cpuid_to_numanode, cpuid_to_efficiency
 
 # precompile
 import PrecompileTools
