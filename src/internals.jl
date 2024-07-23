@@ -200,7 +200,7 @@ function SysInfo.sysinfo(; sys::System = getsystem())
     return
 end
 
-function _print_sysinfo_header(; io = stdout, sys::System = getsystem())
+function _print_sysinfo_header(; io = stdout, sys::System = getsystem(), gpu = true)
     cpukind = () -> Sys.cpu_info()[1].model
 
     println("Hostname: \t", gethostname())
@@ -223,7 +223,7 @@ function _print_sysinfo_header(; io = stdout, sys::System = getsystem())
         end
         println("NUMA domains: \t", SysInfo.nnuma(; sys))
     end
-    if ngpus(; sys) > 0
+    if gpu && ngpus(; sys) > 0
         println("Detected GPUs: \t", ngpus(; sys))
     end
 end
