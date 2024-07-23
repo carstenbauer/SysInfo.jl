@@ -151,6 +151,9 @@ SysInfo.ncorekinds(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, IE
 SysInfo.maxsmt(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ISMT]))
 SysInfo.hyperthreading_is_enabled(; sys::System = getsystem()) =
     any(>(1), @view(sys.matrix[:, ISMT]))
+SysInfo.id(cpuid::Integer; sys::System = getsystem()) =
+    findfirst(==(cpuid), @view(sys.matrix[:, IOSID]))
+
 
 function SysInfo.sysinfo(; sys::System = getsystem())
     cpukind = () -> Sys.cpu_info()[1].model

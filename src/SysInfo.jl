@@ -10,6 +10,7 @@ import .Internals: cpuids_all
 export sysinfo
 @public ncputhreads, ncores, nsockets, nnuma, ncorekinds, hyperthreading_is_enabled
 @public core, numa, socket, node, cores, sockets, numas
+@public id
 
 # precompile
 import PrecompileTools

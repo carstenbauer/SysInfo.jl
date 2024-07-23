@@ -8,6 +8,7 @@ using Test
     @test SysInfo.nnuma() > 0    # Write your tests here.
     @test SysInfo.maxsmt() > 0
     @test SysInfo.ncorekinds() > 0
+    @test SysInfo.id(0) == 1
 
     @test isnothing(sysinfo()) # exported
 

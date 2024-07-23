@@ -85,3 +85,9 @@ Set `shuffle=true` to randomize.
 Optional first argument: Logical indices to select a subset of the sockets.
 """
 function cores end
+
+"""
+Returns the logical index (starts at 1) that corresponds to the given
+CPU ID ("physical" OS index).
+"""
+function id end
