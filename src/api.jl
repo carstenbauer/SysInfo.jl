@@ -120,3 +120,10 @@ The lowest possible value is 1. Higher values indicate less efficient cores.
 On systems with only a single core kind, all cores will have value 1.
 """
 function cpuid_to_efficiency end
+
+"""
+Returns true if the given CPU-thread lies inside of a CPU-core that has the highest power
+efficiency of all the CPU-cores (i.e. an efficiency value of 1). If
+there is only a single CPU-core kind, the return value is false for all CPU IDs.
+"""
+function isefficiencycore end

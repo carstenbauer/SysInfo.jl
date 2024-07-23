@@ -12,6 +12,7 @@ using Test
     @test SysInfo.ishyperthread(SysInfo.cpuid(1)) isa Bool
     @test SysInfo.cpuid_to_numanode(SysInfo.cpuid(1)) == 1
     @test SysInfo.cpuid_to_efficiency(SysInfo.cpuid(1)) == 1
+    @test SysInfo.isefficiencycore(SysInfo.cpuid(1)) isa Bool
 
     @test isnothing(sysinfo()) # exported
 

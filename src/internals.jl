@@ -173,6 +173,9 @@ function SysInfo.cpuid_to_efficiency(cpuid::Integer; sys::System = getsystem())
     isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
     return sys.matrix[id, IEFFICIENCY]
 end
+function SysInfo.isefficiencycore(cpuid::Integer; sys::System = getsystem())
+    return SysInfo.ncorekinds() > 1 && SysInfo.cpuid_to_efficiency(cpuid; sys) == 1
+end
 
 
 function SysInfo.sysinfo(; sys::System = getsystem())
