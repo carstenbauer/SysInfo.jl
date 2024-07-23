@@ -1,6 +1,3 @@
-"Check whether hyperthreading is enabled."
-function hyperthreading_is_enabled end
-
 "Number of CPU-threads"
 function ncputhreads end
 
@@ -100,3 +97,12 @@ Returns the CPU ID ("physical" OS index) that corresponds to the given
 logical index (starts at 1).
 """
 function cpuid end
+
+"Check whether hyperthreading is enabled."
+function hyperthreading_is_enabled end
+
+"""
+Check whether the given CPU-thread is a SMT-thread / "hyperthread" (i.e. it is not the
+first CPU-thread in the CPU-core).
+"""
+function ishyperthread end

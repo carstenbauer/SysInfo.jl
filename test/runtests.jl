@@ -9,6 +9,7 @@ using Test
     @test SysInfo.nsmt() > 0
     @test SysInfo.ncorekinds() > 0
     @test SysInfo.id(SysInfo.cpuid(1)) == 1
+    @test SysInfo.ishyperthread(SysInfo.cpuid(1)) isa Bool
 
     @test isnothing(sysinfo()) # exported
 

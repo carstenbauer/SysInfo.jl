@@ -158,6 +158,11 @@ function SysInfo.cpuid(cpuid::Integer; sys::System = getsystem())
     isnothing(idx) && return
     return sys.matrix[idx, IOSID]
 end
+function SysInfo.ishyperthread(cpuid::Integer; sys::System = getsystem())
+    id = SysInfo.id(cpuid)
+    isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
+    return sys.matrix[id, ISMT] != 1
+end
 
 
 function SysInfo.sysinfo(; sys::System = getsystem())
