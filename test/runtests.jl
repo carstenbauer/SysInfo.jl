@@ -6,7 +6,7 @@ using Test
     @test SysInfo.ncores() > 0    # Write your tests here.
     @test SysInfo.nsockets() > 0    # Write your tests here.
     @test SysInfo.nnuma() > 0    # Write your tests here.
-    @test SysInfo.maxsmt() > 0
+    @test SysInfo.nsmt() > 0
     @test SysInfo.ncorekinds() > 0
     @test SysInfo.id(SysInfo.cpuid(1)) == 1
 

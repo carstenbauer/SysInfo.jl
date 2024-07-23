@@ -19,8 +19,11 @@ function ncorekinds end
 "Prints an overview of the system."
 function sysinfo end
 
-"The maximal number of SMT-threads in a core."
-function maxsmt end
+"""
+The number of SMT-threads in a core. If this number varies between different cores, the
+maximum is returned.
+"""
+function nsmt end
 
 """
 Returns the CPU IDs that belong to core `i` (logical index, starts at 1).

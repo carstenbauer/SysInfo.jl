@@ -55,7 +55,7 @@ function cpuids_all(; sys::System = getsystem(), compact = false, idcs = Colon()
     return @view(mat[idcs, IOSID])
 end
 function cpuids_of_core(coreid::Integer; sys::System = getsystem(), idcs = Colon())
-    nsmt = SysInfo.maxsmt(; sys)
+    nsmt = SysInfo.nsmt(; sys)
     res = Vector{Int}(undef, nsmt)
     i = 1
     for r in eachrow(sys.matrix)
@@ -148,7 +148,7 @@ SysInfo.ncores(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ICORE]
 SysInfo.nnuma(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, INUMA]))
 SysInfo.nsockets(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ISOCKET]))
 SysInfo.ncorekinds(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, IEFFICIENCY]))
-SysInfo.maxsmt(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ISMT]))
+SysInfo.nsmt(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ISMT]))
 SysInfo.hyperthreading_is_enabled(; sys::System = getsystem()) =
     any(>(1), @view(sys.matrix[:, ISMT]))
 SysInfo.id(cpuid::Integer; sys::System = getsystem()) =
