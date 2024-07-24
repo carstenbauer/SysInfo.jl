@@ -22,7 +22,7 @@ const ISMT = 6
 const IEFFICIENCY = 7
 
 # default to hwloc backend
-System() = System(Hwloc.gettopology())
+System() = System(Hwloc.gettopology(; io=true, disallowed=true))
 
 # hwloc backend
 function System(topo::Hwloc.Object)
