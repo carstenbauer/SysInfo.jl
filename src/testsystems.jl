@@ -72,8 +72,18 @@ function load(name::String; ispath = false)
     return TestSystem(name, cpumodel, lscpustr, hwtopo, sys)
 end
 
-function use(name::String; backend = :lscpu, kwargs...)
+function use(name::String; backend = nothing, kwargs...)
     ts = load(name; kwargs...)
+    if isnothing(backend)
+        backend = if !isnothing(ts.sys)
+            :sys
+        elseif !isnothing(ts.sys)
+            :hwloc
+        else
+            :lscpu
+        end
+    end
+
     if backend == :lscpu
         isnothing(ts.lscpustr) && error("Test system doesn't have lscpu string.")
         SysInfo.Internals.update_stdsys(;
