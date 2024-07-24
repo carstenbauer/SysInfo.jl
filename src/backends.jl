@@ -238,8 +238,8 @@ end
 
 # consistency check
 function check_consistency_backends()
-    sys_hwloc = System(Hwloc.gettopology())
-    sys_lscpu = System(lscpu_string())
+    sys_hwloc = getsystem(; backend=:hwloc)
+    sys_lscpu = getsystem(; backend=:lscpu)
     # sort all by OS ID
     mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
     mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
