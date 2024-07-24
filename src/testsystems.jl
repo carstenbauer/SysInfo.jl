@@ -106,6 +106,7 @@ function use(name::String; backend = nothing, kwargs...)
     else
         throw(ArgumentError("Invalid backend."))
     end
+    return
 end
 
 reset() = SysInfo.Internals.update_stdsys()
