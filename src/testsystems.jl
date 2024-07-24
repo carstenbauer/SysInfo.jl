@@ -4,6 +4,7 @@ using ..Internals: lscpu_string
 import SysInfo
 import Hwloc
 import Serialization
+import Dates
 
 struct TestSystem
     name::String
@@ -44,7 +45,7 @@ function load(name::String; ispath = false)
     sys = nothing
     try
         info = readlines(joinpath(dir, "info.txt"))
-        cpumodel = info[5]
+        cpumodel = info[6]
         # ver = VersionNumber(info[1])
         # if ver < VERSION
         #     @warn(
@@ -118,6 +119,7 @@ function dump_current_system(dirname = "sysinfo_dump")
     cd(dirname) do
         try
             open("info.txt", "w") do f
+                write(f, string(Dates.today()), "\n")
                 write(f, gethostname(), "\n")
                 write(f, string(VERSION), "\n")
                 write(f, string(pkgversion(SysInfo)), "\n")
