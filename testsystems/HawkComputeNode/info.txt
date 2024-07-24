@@ -1,0 +1,8 @@
+2024-07-24
+r5c2t1n1
+1.10.4
+0.1.0
+3.2.0
+AMD EPYC 7742 64-Core Processor
+znver2
+256
