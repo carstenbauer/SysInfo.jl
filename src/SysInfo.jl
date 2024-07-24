@@ -3,6 +3,7 @@ module SysInfo
 include("public_macro.jl")
 include("api.jl")
 include("internals.jl")
+include("testsystems.jl")
 
 import .Internals: cpuids_all, getsystem, stdsys
 
