@@ -1,0 +1,7 @@
+nid200015
+1.10.4
+0.1.0
+3.2.0
+AMD EPYC 7763 64-Core Processor
+znver3
+256

@@ -1,4 +1,6 @@
 struct System
+    name::String
+    cpumodel::String
     # Columns of the sysinfo matrix (in that order):
     #   * ID (logical, i.e. starts at 1, compact order)
     #   * OSID ("physical", i.e. starts at 0)
@@ -21,22 +23,37 @@ const ISOCKET = 5
 const ISMT = 6
 const IEFFICIENCY = 7
 
-# default to hwloc backend
-System() = System(Hwloc.gettopology(; reload=true, io = true, disallowed = true))
+default_name() = gethostname()
+default_cpumodel() = Sys.cpu_info()[1].model
+default_hwloc_topology() = Hwloc.gettopology(; reload = true, io = true, disallowed = true)
 
-function getsystem(; backend = nothing, lscpustr = nothing, kwargs...)
+# default to hwloc backend
+System(; kwargs...) = System(default_hwloc_topology(); kwargs...)
+
+function getsystem(;
+    backend = nothing,
+    lscpustr = nothing,
+    hwtopo = nothing,
+    disallowed = true,
+    name = default_name(),
+    cpumodel = default_cpumodel(),
+)
     if backend == :hwloc
-        sys = System(Hwloc.gettopology(; reload = true, kwargs...))
+        sys = System(
+            isnothing(hwtopo) ? Hwloc.gettopology(; reload = true, disallowed) : hwtopo;
+            name,
+            cpumodel,
+        )
     elseif backend == :lscpu
-        sys = System(isnothing(lscpustr) ? lscpu_string() : lscpustr)
+        sys = System(isnothing(lscpustr) ? lscpu_string() : lscpustr; name, cpumodel)
     else
-        sys = System()
+        sys = System(; name, cpumodel)
     end
     return sys
 end
 
 # hwloc backend
-function System(topo::Hwloc.Object)
+function System(topo::Hwloc.Object; name, cpumodel)
     if !hwloc_isa(topo, :Machine)
         throw(
             ArgumentError(
@@ -88,7 +105,7 @@ function System(topo::Hwloc.Object)
     end
     @assert @view(matrix[:, IID]) == 1:num_virtual_cores()
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
-    return System(matrix, matrix_noncompact, ngpus)
+    return System(name, cpumodel, matrix, matrix_noncompact, ngpus)
 end
 
 function _ith_in_mask(mask::Culong, i::Integer)
@@ -136,12 +153,12 @@ function _lscpu_table_to_columns(
         x -> !(isequal(x, "no") || isequal(x, "ONLINE")),
         table[:, colid_online],
     )
-    if length(online_cpu_tblidcs) != Sys.CPU_THREADS
-        @warn(
-            "Number of online CPUs ($(length(online_cpu_tblidcs))) doesn't match " *
-            "Sys.CPU_THREADS ($(Sys.CPU_THREADS))."
-        )
-    end
+    # if length(online_cpu_tblidcs) != Sys.CPU_THREADS
+    #     @warn(
+    #         "Number of online CPUs ($(length(online_cpu_tblidcs))) doesn't match " *
+    #         "Sys.CPU_THREADS ($(Sys.CPU_THREADS))."
+    #     )
+    # end
 
     col_cpuid = @views parse.(Int, table[online_cpu_tblidcs, colid_cpu])
     col_socket = if isnothing(colid_socket)
@@ -171,7 +188,7 @@ function _lscpu_table_to_columns(
     )
 end
 
-function System(lscpu_string::AbstractString)
+function System(lscpu_string::AbstractString; name, cpumodel)
     table = _lscpu2table(lscpu_string)
     cols = _lscpu_table_to_columns(table)
 
@@ -181,9 +198,6 @@ function System(lscpu_string::AbstractString)
 
     ncputhreads = length(cols.cpuid)
     ncores = length(unique(cols.core))
-    # nsockets = length(unique(cols.socket))
-    # count number of numa nodes
-    # nnuma = length(unique(cols.numa))
 
     # sysinfo matrix
     coreids = unique(cols.core)
@@ -218,7 +232,7 @@ function System(lscpu_string::AbstractString)
         counters[core] += 1
     end
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
-    return System(matrix, matrix_noncompact, -1)
+    return System(name, cpumodel, matrix, matrix_noncompact, -1)
 end
 
 

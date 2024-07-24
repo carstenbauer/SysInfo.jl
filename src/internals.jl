@@ -15,8 +15,8 @@ function stdsys(; kwargs...)
     isnothing(sys[]) && update_stdsys(kwargs...)
     return sys[]
 end
-function update_stdsys(kwargs...)
-    sys[] = getsystem(kwargs...)
+function update_stdsys(; kwargs...)
+    sys[] = getsystem(; kwargs...)
     return
 end
 function clear_cache()
@@ -210,11 +210,10 @@ function _print_sysinfo_header(;
     gpu = true,
     always_show_total = false,
 )
-    cpukind = () -> Sys.cpu_info()[1].model
 
-    println(io, "Hostname: \t", gethostname())
+    println(io, "Hostname: \t", sys.name)
     ncpus = SysInfo.nsockets(; sys)
-    println(io, "CPU(s): \t$(ncpus) x ", cpukind())
+    println(io, "CPU(s): \t$(ncpus) x ", sys.cpumodel)
     if always_show_total || ncpus > 1
         println(
             io,
