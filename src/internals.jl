@@ -11,17 +11,13 @@ include("backends.jl")
 # global storage + accessor + clear
 const sys = Ref{Union{Nothing,System}}(nothing)
 
-function getsystem(; reload = false, backend = nothing) # default backend
-    if isnothing(sys[]) || reload
-        if backend == :hwloc
-            sys[] = System(Hwloc.gettopology())
-        elseif backend == :lscpu
-            sys[] = System(lscpu_string())
-        else
-            sys[] = System()
-        end
-    end
+function stdsys(; kwargs...)
+    isnothing(sys[]) && update_stdsys(kwargs...)
     return sys[]
+end
+function update_stdsys(kwargs...)
+    sys[] = getsystem(kwargs...)
+    return
 end
 function clear_cache()
     sys[] = nothing
@@ -29,13 +25,13 @@ function clear_cache()
 end
 
 # internal helpers
-function ncores_within_socket(socket::Integer; sys::System = getsystem())
+function ncores_within_socket(socket::Integer; sys::System = stdsys())
     return count(r -> r[ISOCKET] == socket && r[ISMT] == 1, eachrow(sys.matrix))
 end
-function ncputhreads_within_socket(socket::Integer; sys::System = getsystem())
+function ncputhreads_within_socket(socket::Integer; sys::System = stdsys())
     return count(r -> r[ISOCKET] == socket, eachrow(sys.matrix))
 end
-function nnuma_within_socket(socket::Integer; sys::System = getsystem())
+function nnuma_within_socket(socket::Integer; sys::System = stdsys())
     # OPT: Perf improve?
     return length(
         unique(
@@ -44,17 +40,17 @@ function nnuma_within_socket(socket::Integer; sys::System = getsystem())
         ),
     )
 end
-function ncores_of_kind(kind::Integer; sys::System = getsystem())
+function ncores_of_kind(kind::Integer; sys::System = stdsys())
     return count(r -> r[IEFFICIENCY] == kind && r[ISMT] == 1, eachrow(sys.matrix))
 end
 
-ngpus(; sys::System = getsystem()) = sys.ngpus
+ngpus(; sys::System = stdsys()) = sys.ngpus
 
-function cpuids_all(; sys::System = getsystem(), compact = false, idcs = Colon())
+function cpuids_all(; sys::System = stdsys(), compact = false, idcs = Colon())
     mat = compact ? sys.matrix : sys.matrix_noncompact
     return @view(mat[idcs, IOSID])
 end
-function cpuids_of_core(coreid::Integer; sys::System = getsystem(), idcs = Colon())
+function cpuids_of_core(coreid::Integer; sys::System = stdsys(), idcs = Colon())
     nsmt = SysInfo.nsmt(; sys)
     res = Vector{Int}(undef, nsmt)
     i = 1
@@ -81,7 +77,7 @@ end
 function _cpuids_of_X(
     id::Integer,
     xid::Integer;
-    sys::System = getsystem(),
+    sys::System = stdsys(),
     compact = false,
     idcs = Colon(),
 )
@@ -143,42 +139,42 @@ function interweave(arrays::AbstractVector...)
 end
 
 # API functions
-SysInfo.ncputhreads(; sys::System = getsystem()) = size(sys.matrix, 1)
-SysInfo.ncores(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ICORE]))
-SysInfo.nnuma(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, INUMA]))
-SysInfo.nsockets(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ISOCKET]))
-SysInfo.ncorekinds(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, IEFFICIENCY]))
-SysInfo.nsmt(; sys::System = getsystem()) = maximum(@view(sys.matrix[:, ISMT]))
-SysInfo.hyperthreading_is_enabled(; sys::System = getsystem()) =
+SysInfo.ncputhreads(; sys::System = stdsys()) = size(sys.matrix, 1)
+SysInfo.ncores(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ICORE]))
+SysInfo.nnuma(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, INUMA]))
+SysInfo.nsockets(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISOCKET]))
+SysInfo.ncorekinds(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, IEFFICIENCY]))
+SysInfo.nsmt(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISMT]))
+SysInfo.hyperthreading_is_enabled(; sys::System = stdsys()) =
     any(>(1), @view(sys.matrix[:, ISMT]))
-SysInfo.id(cpuid::Integer; sys::System = getsystem()) =
+SysInfo.id(cpuid::Integer; sys::System = stdsys()) =
     findfirst(==(cpuid), @view(sys.matrix[:, IOSID]))
-function SysInfo.cpuid(cpuid::Integer; sys::System = getsystem())
+function SysInfo.cpuid(cpuid::Integer; sys::System = stdsys())
     idx = findfirst(==(cpuid), @view(sys.matrix[:, IID]))
     isnothing(idx) && return
     return sys.matrix[idx, IOSID]
 end
-function SysInfo.ishyperthread(cpuid::Integer; sys::System = getsystem())
+function SysInfo.ishyperthread(cpuid::Integer; sys::System = stdsys())
     id = SysInfo.id(cpuid)
     isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
     return sys.matrix[id, ISMT] != 1
 end
-function SysInfo.cpuid_to_numanode(cpuid::Integer; sys::System = getsystem())
+function SysInfo.cpuid_to_numanode(cpuid::Integer; sys::System = stdsys())
     id = SysInfo.id(cpuid)
     isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
     return sys.matrix[id, INUMA]
 end
-function SysInfo.cpuid_to_efficiency(cpuid::Integer; sys::System = getsystem())
+function SysInfo.cpuid_to_efficiency(cpuid::Integer; sys::System = stdsys())
     id = SysInfo.id(cpuid)
     isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
     return sys.matrix[id, IEFFICIENCY]
 end
-function SysInfo.isefficiencycore(cpuid::Integer; sys::System = getsystem())
+function SysInfo.isefficiencycore(cpuid::Integer; sys::System = stdsys())
     return SysInfo.ncorekinds() > 1 && SysInfo.cpuid_to_efficiency(cpuid; sys) == 1
 end
 
 
-function SysInfo.sysinfo(; sys::System = getsystem())
+function SysInfo.sysinfo(; sys::System = stdsys())
     _print_sysinfo_header(; sys)
 
     println()
@@ -208,19 +204,26 @@ function SysInfo.sysinfo(; sys::System = getsystem())
     return
 end
 
-function _print_sysinfo_header(; io = stdout, sys::System = getsystem(), gpu = true)
+function _print_sysinfo_header(;
+    io = stdout,
+    sys::System = stdsys(),
+    gpu = true,
+    always_show_total = false,
+)
     cpukind = () -> Sys.cpu_info()[1].model
 
-    println("Hostname: \t", gethostname())
+    println(io, "Hostname: \t", gethostname())
     ncpus = SysInfo.nsockets(; sys)
-    println("CPU(s): \t$(ncpus) x ", cpukind())
-    if ncpus > 1
+    println(io, "CPU(s): \t$(ncpus) x ", cpukind())
+    if always_show_total || ncpus > 1
         println(
+            io,
             "Cores: \t\t$(SysInfo.ncores(; sys)) physical ($(SysInfo.ncputhreads(; sys)) virtual) cores",
         )
         if SysInfo.ncorekinds(; sys) != 1
             if SysInfo.ncorekinds(; sys) == 2
                 println(
+                    io,
                     "Core kinds: \t",
                     ncores_of_kind(1; sys),
                     " \"efficiency cores\", ",
@@ -229,7 +232,7 @@ function _print_sysinfo_header(; io = stdout, sys::System = getsystem(), gpu = t
                 )
             end
         end
-        println("NUMA domains: \t", SysInfo.nnuma(; sys))
+        println(io, "NUMA domains: \t", SysInfo.nnuma(; sys))
     end
     if gpu && ngpus(; sys) > 0
         println("Detected GPUs: \t", ngpus(; sys))

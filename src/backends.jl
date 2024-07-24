@@ -22,7 +22,18 @@ const ISMT = 6
 const IEFFICIENCY = 7
 
 # default to hwloc backend
-System() = System(Hwloc.gettopology(; io=true, disallowed=true))
+System() = System(Hwloc.gettopology(; reload=true, io = true, disallowed = true))
+
+function getsystem(; backend = nothing, lscpustr = nothing, kwargs...)
+    if backend == :hwloc
+        sys = System(Hwloc.gettopology(; reload = true, kwargs...))
+    elseif backend == :lscpu
+        sys = System(isnothing(lscpustr) ? lscpu_string() : lscpustr)
+    else
+        sys = System()
+    end
+    return sys
+end
 
 # hwloc backend
 function System(topo::Hwloc.Object)
