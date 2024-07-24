@@ -112,7 +112,7 @@ end
 reset() = SysInfo.Internals.update_stdsys()
 
 function dump_current_system(dirname = "sysinfo_dump")
-    @info("Creating folder \"dirname\".")
+    @info("Creating folder \"$dirname\".")
     isdir(dirname) && rm(dirname; force = true, recursive = true)
     mkdir(dirname)
     cd(dirname) do
