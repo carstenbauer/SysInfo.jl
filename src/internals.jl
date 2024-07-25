@@ -46,7 +46,7 @@ end
 
 ngpus(; sys::System = stdsys()) = sys.ngpus
 
-function cpuids_all(; sys::System = stdsys(), compact = false, idcs = Colon())
+function cpuids(; sys::System = stdsys(), compact = false, idcs = Colon())
     mat = compact ? sys.matrix : sys.matrix_noncompact
     return @view(mat[idcs, IOSID])
 end
@@ -261,7 +261,7 @@ function SysInfo.socket(i::Integer, idcs::T_idcs = Colon(); shuffle = false, kwa
 end
 function SysInfo.node(idcs::T_idcs = Colon(); shuffle = false, kwargs...)
     idcs = idcs isa Integer ? [idcs] : idcs
-    cpuids = collect(cpuids_all(; idcs, kwargs...))
+    cpuids = collect(SysInfo.cpuids(; idcs, kwargs...))
     shuffle && Random.shuffle!(cpuids)
     return cpuids
 end

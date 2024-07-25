@@ -5,7 +5,7 @@ include("api.jl")
 include("internals.jl")
 include("testsystems.jl")
 
-import .Internals: cpuids_all, getsystem, stdsys
+import .Internals: cpuids, getsystem, stdsys
 
 # public API
 export sysinfo
