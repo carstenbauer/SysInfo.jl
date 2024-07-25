@@ -15,6 +15,10 @@ struct TestSystem
     sys::Union{Nothing,SysInfo.Internals.System}
 end
 
+hashwloc(ts::TestSystem) = !isnothing(ts.hwtopo)
+haslscpu(ts::TestSystem) = !isnothing(ts.lscpustr)
+hassys(ts::TestSystem) = !isnothing(ts.sys)
+
 function Base.show(io::IO, ts::TestSystem)
     println(io, "TestSystem: ", ts.name)
     println(io, "→ lscpustr: ", !isnothing(ts.lscpustr))
@@ -76,20 +80,22 @@ function load(name::String; ispath = false)
     return TestSystem(name, cpumodel, cpullvm, lscpustr, hwtopo, sys)
 end
 
-function use(name::String; backend = nothing, kwargs...)
-    ts = load(name; kwargs...)
+use(name::String; backend = nothing, kwargs...) = use(load(name; kwargs...); backend)
+
+function use(ts::TestSystem; backend = nothing)
     if isnothing(backend)
-        backend = if !isnothing(ts.hwtopo)
+        backend = if hashwloc(ts)
             :hwloc
-        elseif !isnothing(ts.sys)
-            :sys
-        else
+        elseif haslscpu(ts)
             :lscpu
+        else
+            :sys
         end
     end
+    @info("Using backend $backend.")
 
     if backend == :lscpu
-        isnothing(ts.lscpustr) && error("Test system doesn't have lscpu string.")
+        !haslscpu(ts) && error("Test system doesn't have lscpu string.")
         SysInfo.Internals.update_stdsys(;
             backend = :lscpu,
             lscpustr = ts.lscpustr,
@@ -98,7 +104,7 @@ function use(name::String; backend = nothing, kwargs...)
             ts.cpullvm,
         )
     elseif backend == :hwloc
-        isnothing(ts.hwtopo) && error("Test system doesn't have hwtopo.")
+        !hashwloc(ts) && error("Test system doesn't have hwtopo.")
         SysInfo.Internals.update_stdsys(;
             backend = :hwloc,
             hwtopo = ts.hwtopo,
@@ -107,12 +113,21 @@ function use(name::String; backend = nothing, kwargs...)
             ts.cpullvm,
         )
     elseif backend == :sys
-        isnothing(ts.sys) && error("Test system doesn't have sys.")
+        !hassys(ts) && error("Test system doesn't have sys.")
         SysInfo.Internals.sys[] = ts.sys
     else
         throw(ArgumentError("Invalid backend."))
     end
     return
+end
+
+function with_testsystem(f::F, ts::TestSystem; kwargs...) where {F}
+    use(ts; kwargs...)
+    try
+        return f()
+    finally
+        reset()
+    end
 end
 
 reset() = SysInfo.Internals.update_stdsys()

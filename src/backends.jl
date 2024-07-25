@@ -194,11 +194,11 @@ function _lscpu_table_to_columns(
     )
 end
 
+# lscpu backend
 function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
     table = _lscpu2table(lscpu_string)
     cols = _lscpu_table_to_columns(table)
 
-    cpuids = cols.cpuid
     @assert issorted(cols.cpuid)
     @assert length(Set(cols.cpuid)) == length(cols.cpuid) # no duplicates
 
@@ -237,18 +237,24 @@ function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
         matrix[row, ISMT] = counters[core]
         counters[core] += 1
     end
+    matrix = getsortedby(matrix, (ISOCKET, INUMA, ICORE, ISMT))
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, -1)
 end
 
+function getsortedby(matrix, bytuple::Tuple; kwargs...)
+    @views sortslices(matrix; dims = 1, by = x -> Tuple(x[i] for i in bytuple), kwargs...)
+end
 
 # consistency check
 function check_consistency_backends()
     sys_hwloc = getsystem(; backend = :hwloc)
     sys_lscpu = getsystem(; backend = :lscpu)
-    # sort all by OS ID
-    mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
-    mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
+    # exclude efficiency
+    mat_hwloc = sys_hwloc.matrix[:, 1:end-1]
+    mat_lscpu = sys_lscpu.matrix[:, 1:end-1]
+    mat_noncompact_hwloc = sys_hwloc.matrix_noncompact[:, 1:end-1]
+    mat_noncompact_lscpu = sys_lscpu.matrix_noncompact[:, 1:end-1]
     # compare
-    return mat_hwloc == mat_lscpu
+    return mat_hwloc == mat_lscpu && mat_noncompact_hwloc == mat_noncompact_lscpu
 end
