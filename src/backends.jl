@@ -67,7 +67,7 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
         )
     end
 
-    cks = Hwloc.get_cpukind_info()
+    cks = Hwloc.get_cpukind_info() # TODO use topo arg
     has_multiple_cpu_kinds = !isempty(cks)
     local isocket
     local icore
@@ -77,7 +77,8 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
     inuma = 0
     row = 1
     ngpus = 0
-    matrix = fill(-1, (num_virtual_cores(), 7))
+    ncputhreads = count(hwloc_isa(:PU), topo)
+    matrix = fill(-1, (ncputhreads, 7))
     for obj in topo
         hwloc_isa(obj, :Package) && (isocket = obj.logical_index + 1)
         hwloc_isa(obj, :NUMANode) && (inuma += 1)
@@ -108,7 +109,7 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
             ngpus += 1
         end
     end
-    @assert @view(matrix[:, IID]) == 1:num_virtual_cores()
+    @assert @view(matrix[:, IID]) == 1:ncputhreads
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, ngpus)
 end
