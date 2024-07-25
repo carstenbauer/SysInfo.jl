@@ -14,6 +14,7 @@ julia> using SysInfo
 julia> sysinfo() # only exported function
 Hostname:       login19
 CPU(s):         2 x AMD EPYC 7713 64-Core Processor
+CPU target:     znver3
 Cores:          128 (256 CPU-threads due to 2-way SMT)
 NUMA domains:   8 (16 cores each)
 
@@ -45,6 +46,7 @@ On a Mac mini M1:
 julia> sysinfo()
 Hostname: 	pc2macmini.fritz.box
 CPU(s): 	1 x Apple M1
+CPU target:     apple-m1
 
 ∘ CPU 1:
 	→ 8 cores (8 CPU-threads)
