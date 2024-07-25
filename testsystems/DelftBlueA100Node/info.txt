@@ -1,0 +1,8 @@
+2024-07-25
+gpu012
+1.10.4
+0.1.0
+3.2.0
+Intel(R) Xeon(R) Gold 6448Y
+sapphirerapids
+64
