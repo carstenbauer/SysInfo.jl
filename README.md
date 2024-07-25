@@ -12,16 +12,16 @@ On a Perlmutter (NERSC) login node:
 julia> using SysInfo
 
 julia> sysinfo() # only exported function
-Hostname:       login17
+Hostname:       login19
 CPU(s):         2 x AMD EPYC 7713 64-Core Processor
 Cores:          128 (256 CPU-threads due to 2-way SMT)
 NUMA domains:   8 (16 cores each)
 
-∘ CPU 1:
-        → 64 physical (128 virtual) cores
+∘ CPU 1: 
+        → 64 cores (128 CPU-threads due to 2-way SMT)
         → 4 NUMA domains
-∘ CPU 2:
-        → 64 physical (128 virtual) cores
+∘ CPU 2: 
+        → 64 cores (128 CPU-threads due to 2-way SMT)
         → 4 NUMA domains
 
 Detected GPUs:  1
@@ -43,13 +43,13 @@ On a Mac mini M1:
 
 ```julia-repl
 julia> sysinfo()
-Hostname:       pc2macmini.fritz.box
-CPU(s):         1 x Apple M1
+Hostname: 	pc2macmini.fritz.box
+CPU(s): 	1 x Apple M1
 
-∘ CPU 1: 
-        → 8 physical (8 virtual) cores
-        → 4 "efficiency cores", 4 "performance cores".
-        → 1 NUMA domain
+∘ CPU 1:
+	→ 8 cores (8 CPU-threads)
+	→ 4 "efficiency cores", 4 "performance cores".
+	→ 1 NUMA domain
 ```
 
 ## Backend
