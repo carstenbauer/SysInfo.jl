@@ -40,7 +40,6 @@ PrecompileTools.@compile_workload begin
         cpuid_to_efficiency(0)
         Internals.clear_cache()
     end
-    SysInfo.Internals.clear_cache()
 end
 
 end
