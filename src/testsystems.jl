@@ -9,6 +9,7 @@ import Dates
 struct TestSystem
     name::String
     cpumodel::String
+    cpullvm::String
     lscpustr::Union{Nothing,String}
     hwtopo::Union{Nothing,Hwloc.Object}
     sys::Union{Nothing,SysInfo.Internals.System}
@@ -40,12 +41,14 @@ function load(name::String; ispath = false)
     end
 
     cpumodel = "unknown"
+    cpullvm = "unknown"
     lscpustr = nothing
     hwtopo = nothing
     sys = nothing
     try
         info = readlines(joinpath(dir, "info.txt"))
         cpumodel = info[6]
+        cpullvm = info[7]
         # ver = VersionNumber(info[1])
         # if ver < VERSION
         #     @warn(
@@ -70,16 +73,16 @@ function load(name::String; ispath = false)
     catch
         @info("Couldn't process \"sys.bin\". Moving on.")
     end
-    return TestSystem(name, cpumodel, lscpustr, hwtopo, sys)
+    return TestSystem(name, cpumodel, cpullvm, lscpustr, hwtopo, sys)
 end
 
 function use(name::String; backend = nothing, kwargs...)
     ts = load(name; kwargs...)
     if isnothing(backend)
-        backend = if !isnothing(ts.sys)
-            :sys
-        elseif !isnothing(ts.sys)
+        backend = if !isnothing(ts.hwtopo)
             :hwloc
+        elseif !isnothing(ts.sys)
+            :sys
         else
             :lscpu
         end
@@ -92,6 +95,7 @@ function use(name::String; backend = nothing, kwargs...)
             lscpustr = ts.lscpustr,
             ts.name,
             ts.cpumodel,
+            ts.cpullvm,
         )
     elseif backend == :hwloc
         isnothing(ts.hwtopo) && error("Test system doesn't have hwtopo.")
@@ -100,6 +104,7 @@ function use(name::String; backend = nothing, kwargs...)
             hwtopo = ts.hwtopo,
             ts.name,
             ts.cpumodel,
+            ts.cpullvm,
         )
     elseif backend == :sys
         isnothing(ts.sys) && error("Test system doesn't have sys.")

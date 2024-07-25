@@ -223,11 +223,11 @@ function _print_sysinfo_header(;
     gpu = true,
     always_show_total = false,
 )
-
     println(io, "Hostname: \t", sys.name)
     ncpus = SysInfo.nsockets(; sys)
     nsmt = SysInfo.nsmt(; sys)
     println(io, "CPU(s): \t$(ncpus) x ", sys.cpumodel)
+    println(io, "CPU target: \t", sys.cpullvm)
     if always_show_total || ncpus > 1
         println(
             io,

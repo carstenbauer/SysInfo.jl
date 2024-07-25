@@ -1,6 +1,7 @@
 struct System
     name::String
     cpumodel::String
+    cpullvm::String
     # Columns of the sysinfo matrix (in that order):
     #   * ID (logical, i.e. starts at 1, compact order)
     #   * OSID ("physical", i.e. starts at 0)
@@ -25,6 +26,7 @@ const IEFFICIENCY = 7
 
 default_name() = gethostname()
 default_cpumodel() = Sys.cpu_info()[1].model
+default_cpullvm() = Sys.CPU_NAME
 default_hwloc_topology() = Hwloc.gettopology(; reload = true, io = true, disallowed = true)
 
 # default to hwloc backend
@@ -37,23 +39,26 @@ function getsystem(;
     disallowed = true,
     name = default_name(),
     cpumodel = default_cpumodel(),
+    cpullvm = default_cpullvm(),
 )
     if backend == :hwloc
         sys = System(
             isnothing(hwtopo) ? Hwloc.gettopology(; reload = true, disallowed) : hwtopo;
             name,
             cpumodel,
+            cpullvm,
         )
     elseif backend == :lscpu
-        sys = System(isnothing(lscpustr) ? lscpu_string() : lscpustr; name, cpumodel)
+        sys =
+            System(isnothing(lscpustr) ? lscpu_string() : lscpustr; name, cpumodel, cpullvm)
     else
-        sys = System(; name, cpumodel)
+        sys = System(; name, cpumodel, cpullvm)
     end
     return sys
 end
 
 # hwloc backend
-function System(topo::Hwloc.Object; name, cpumodel)
+function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
     if !hwloc_isa(topo, :Machine)
         throw(
             ArgumentError(
@@ -105,7 +110,7 @@ function System(topo::Hwloc.Object; name, cpumodel)
     end
     @assert @view(matrix[:, IID]) == 1:num_virtual_cores()
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
-    return System(name, cpumodel, matrix, matrix_noncompact, ngpus)
+    return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, ngpus)
 end
 
 function _ith_in_mask(mask::Culong, i::Integer)
@@ -188,7 +193,7 @@ function _lscpu_table_to_columns(
     )
 end
 
-function System(lscpu_string::AbstractString; name, cpumodel)
+function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
     table = _lscpu2table(lscpu_string)
     cols = _lscpu_table_to_columns(table)
 
@@ -232,14 +237,14 @@ function System(lscpu_string::AbstractString; name, cpumodel)
         counters[core] += 1
     end
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
-    return System(name, cpumodel, matrix, matrix_noncompact, -1)
+    return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, -1)
 end
 
 
 # consistency check
 function check_consistency_backends()
-    sys_hwloc = getsystem(; backend=:hwloc)
-    sys_lscpu = getsystem(; backend=:lscpu)
+    sys_hwloc = getsystem(; backend = :hwloc)
+    sys_lscpu = getsystem(; backend = :lscpu)
     # sort all by OS ID
     mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
     mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
