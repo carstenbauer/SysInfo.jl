@@ -25,6 +25,12 @@ function clear_cache()
 end
 
 # internal helpers
+function ncores_within_numa(numa::Integer; sys::System = stdsys())
+    return count(r -> r[INUMA] == numa && r[ISMT] == 1, eachrow(sys.matrix))
+end
+function ncputhreads_within_numa(numa::Integer; sys::System = stdsys())
+    return count(r -> r[INUMA] == numa, eachrow(sys.matrix))
+end
 function ncores_within_socket(socket::Integer; sys::System = stdsys())
     return count(r -> r[ISOCKET] == socket && r[ISMT] == 1, eachrow(sys.matrix))
 end
@@ -174,18 +180,21 @@ function SysInfo.isefficiencycore(cpuid::Integer; sys::System = stdsys())
 end
 
 
-function SysInfo.sysinfo(; sys::System = stdsys())
+function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
     _print_sysinfo_header(; sys)
 
     println()
+    nsmt = SysInfo.nsmt(; sys)
     for socket = 1:SysInfo.nsockets(; sys)
         println("∘ CPU ", socket, ": ")
         println(
             "\t→ ",
             ncores_within_socket(socket; sys),
-            " physical (",
+            " cores (",
             ncputhreads_within_socket(socket; sys),
-            " virtual) cores",
+            " CPU-threads",
+            nsmt == 1 ? "" : " due to $(nsmt)-way SMT",
+            ")",
         )
         if SysInfo.ncorekinds(; sys) != 1
             if SysInfo.ncorekinds(; sys) == 2
@@ -201,6 +210,10 @@ function SysInfo.sysinfo(; sys::System = stdsys())
         n = nnuma_within_socket(socket; sys)
         println("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
     end
+
+    if gpu && ngpus(; sys) > 0
+        println("\nDetected GPUs: \t", ngpus(; sys))
+    end
     return
 end
 
@@ -213,11 +226,17 @@ function _print_sysinfo_header(;
 
     println(io, "Hostname: \t", sys.name)
     ncpus = SysInfo.nsockets(; sys)
+    nsmt = SysInfo.nsmt(; sys)
     println(io, "CPU(s): \t$(ncpus) x ", sys.cpumodel)
     if always_show_total || ncpus > 1
         println(
             io,
-            "Cores: \t\t$(SysInfo.ncores(; sys)) physical ($(SysInfo.ncputhreads(; sys)) virtual) cores",
+            "Cores: \t\t$(SysInfo.ncores(; sys))",
+            " (",
+            SysInfo.ncputhreads(; sys),
+            " CPU-threads",
+            nsmt == 1 ? "" : " due to $(nsmt)-way SMT",
+            ")",
         )
         if SysInfo.ncorekinds(; sys) != 1
             if SysInfo.ncorekinds(; sys) == 2
@@ -231,10 +250,14 @@ function _print_sysinfo_header(;
                 )
             end
         end
-        println(io, "NUMA domains: \t", SysInfo.nnuma(; sys))
-    end
-    if gpu && ngpus(; sys) > 0
-        println("Detected GPUs: \t", ngpus(; sys))
+        println(
+            io,
+            "NUMA domains: \t",
+            SysInfo.nnuma(; sys),
+            " (",
+            ncores_within_numa(1; sys),
+            " cores each)",
+        )
     end
 end
 

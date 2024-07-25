@@ -14,9 +14,8 @@ julia> using SysInfo
 julia> sysinfo() # only exported function
 Hostname:       login17
 CPU(s):         2 x AMD EPYC 7713 64-Core Processor
-Cores:          128 physical (256 virtual) cores
-NUMA domains:   8
-Detected GPUs:  1
+Cores:          128 (256 CPU-threads due to 2-way SMT)
+NUMA domains:   8 (16 cores each)
 
 ∘ CPU 1:
         → 64 physical (128 virtual) cores
@@ -24,6 +23,8 @@ Detected GPUs:  1
 ∘ CPU 2:
         → 64 physical (128 virtual) cores
         → 4 NUMA domains
+
+Detected GPUs:  1
 
 julia> SysInfo.ncores() # programmatic access, public API but not exported
 128
