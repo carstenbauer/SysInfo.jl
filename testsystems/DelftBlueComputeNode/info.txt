@@ -1,0 +1,8 @@
+2024-07-25
+cmp041
+1.10.4
+0.1.0
+3.2.0
+Intel(R) Xeon(R) Gold 6248R CPU @ 3.00GHz
+cascadelake
+48
