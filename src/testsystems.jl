@@ -80,6 +80,36 @@ function load(name::String; ispath = false)
     return TestSystem(name, cpumodel, cpullvm, lscpustr, hwtopo, sys)
 end
 
+testsystem2system(name::String; kwargs...) =
+    testsystem2system(load(name; kwargs...); kwargs...)
+
+function testsystem2system(ts::TestSystem; backend = nothing)
+    if backend == :lscpu
+        !haslscpu(ts) && error("Test system doesn't have lscpu string.")
+        return SysInfo.Internals.getsystem(;
+            backend = :lscpu,
+            lscpustr = ts.lscpustr,
+            ts.name,
+            ts.cpumodel,
+            ts.cpullvm,
+        )
+    elseif backend == :hwloc
+        !hashwloc(ts) && error("Test system doesn't have hwtopo.")
+        return SysInfo.Internals.getsystem(;
+            backend = :hwloc,
+            hwtopo = ts.hwtopo,
+            ts.name,
+            ts.cpumodel,
+            ts.cpullvm,
+        )
+    elseif backend == :sys
+        !hassys(ts) && error("Test system doesn't have sys.")
+        return ts.sys
+    else
+        throw(ArgumentError("Invalid backend."))
+    end
+end
+
 use(name::String; backend = nothing, kwargs...) = use(load(name; kwargs...); backend)
 
 function use(ts::TestSystem; backend = nothing)
@@ -93,31 +123,7 @@ function use(ts::TestSystem; backend = nothing)
         end
     end
     @info("Using backend $backend.")
-
-    if backend == :lscpu
-        !haslscpu(ts) && error("Test system doesn't have lscpu string.")
-        SysInfo.Internals.update_stdsys(;
-            backend = :lscpu,
-            lscpustr = ts.lscpustr,
-            ts.name,
-            ts.cpumodel,
-            ts.cpullvm,
-        )
-    elseif backend == :hwloc
-        !hashwloc(ts) && error("Test system doesn't have hwtopo.")
-        SysInfo.Internals.update_stdsys(;
-            backend = :hwloc,
-            hwtopo = ts.hwtopo,
-            ts.name,
-            ts.cpumodel,
-            ts.cpullvm,
-        )
-    elseif backend == :sys
-        !hassys(ts) && error("Test system doesn't have sys.")
-        SysInfo.Internals.sys[] = ts.sys
-    else
-        throw(ArgumentError("Invalid backend."))
-    end
+    SysInfo.Internals.sys[] = testsystem2system(ts; backend)
     return
 end
 

@@ -247,9 +247,10 @@ function getsortedby(matrix, bytuple::Tuple; kwargs...)
 end
 
 # consistency check
-function check_consistency_backends()
-    sys_hwloc = getsystem(; backend = :hwloc)
-    sys_lscpu = getsystem(; backend = :lscpu)
+function check_consistency_backends(;
+    sys_hwloc = getsystem(; backend = :hwloc),
+    sys_lscpu = getsystem(; backend = :lscpu),
+)
     # exclude efficiency
     mat_hwloc = sys_hwloc.matrix[:, 1:end-1]
     mat_lscpu = sys_lscpu.matrix[:, 1:end-1]

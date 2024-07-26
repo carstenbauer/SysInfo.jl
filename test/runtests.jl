@@ -81,7 +81,10 @@ end
                 # check consistency between hwloc and lscpu backend (if possible)
                 if TestSystems.hashwloc(ts) && TestSystems.haslscpu(ts)
                     @info("→ performing consistency check")
-                    @test SysInfo.Internals.check_consistency_backends()
+                    @test SysInfo.Internals.check_consistency_backends(;
+                        sys_hwloc = TestSystems.testsystem2system(ts; backend = :hwloc),
+                        sys_lscpu = TestSystems.testsystem2system(ts; backend = :lscpu),
+                    )
                 end
             end
         end
