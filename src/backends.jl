@@ -143,12 +143,7 @@ function lscpu_string()
     end
 end
 
-_lscpu2table(lscpustr = nothing)::Union{Nothing,Matrix{String}} =
-    readdlm(IOBuffer(lscpustr), String)
-
-function _lscpu_table_to_columns(
-    table,
-)::NamedTuple{(:idcs, :cpuid, :socket, :numa, :core),NTuple{5,Vector{Int}}}
+function _lscpu_table_to_matrix(table)
     colid_cpu = @views findfirst(isequal("CPU"), table[1, :])
     colid_socket = @views findfirst(isequal("SOCKET"), table[1, :])
     colid_numa = @views findfirst(isequal("NODE"), table[1, :])
@@ -156,58 +151,29 @@ function _lscpu_table_to_columns(
     colid_online = @views findfirst(isequal("ONLINE"), table[1, :])
 
     # only consider online cpus
-    online_cpu_tblidcs = @views findall(
+    online_cpu_tblidcs = findall(
         x -> !(isequal(x, "no") || isequal(x, "ONLINE")),
-        table[:, colid_online],
+        @view(table[:, colid_online]),
     )
-    # if length(online_cpu_tblidcs) != Sys.CPU_THREADS
-    #     @warn(
-    #         "Number of online CPUs ($(length(online_cpu_tblidcs))) doesn't match " *
-    #         "Sys.CPU_THREADS ($(Sys.CPU_THREADS))."
-    #     )
-    # end
 
-    col_cpuid = @views parse.(Int, table[online_cpu_tblidcs, colid_cpu])
-    col_socket = if isnothing(colid_socket)
-        fill(zero(Int), length(online_cpu_tblidcs))
-    else
-        @views parse.(Int, table[online_cpu_tblidcs, colid_socket])
+    # build lscpu matrix (all OS IDs)
+    matrix_osids = zeros(Int, length(online_cpu_tblidcs), 4)
+    for (i, row) in enumerate(eachrow(matrix_osids))
+        j = online_cpu_tblidcs[i]
+        row[1] = parse(Int, table[j, colid_cpu])
+        row[2] = parse(Int, table[j, colid_core])
+        row[3] = isnothing(colid_numa) ? 0 : parse(Int, table[j, colid_numa])
+        row[4] = isnothing(colid_socket) ? 0 : parse(Int, table[j, colid_socket])
     end
-    col_numa = if isnothing(colid_numa)
-        fill(zero(Int), length(online_cpu_tblidcs))
-    else
-        @views parse.(Int, table[online_cpu_tblidcs, colid_numa])
-    end
-    col_core = @views parse.(Int, table[online_cpu_tblidcs, colid_core])
-    idcs = 1:length(online_cpu_tblidcs)
-
-    @assert length(idcs) ==
-            length(col_cpuid) ==
-            length(col_socket) ==
-            length(col_numa) ==
-            length(col_core)
-    return (
-        idcs = idcs,
-        cpuid = col_cpuid,
-        socket = col_socket,
-        numa = col_numa,
-        core = col_core,
-    )
+    return matrix_osids
 end
 
 # lscpu backend
 function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
-    table = _lscpu2table(lscpu_string)
-    cols = _lscpu_table_to_columns(table)
+    table = readdlm(IOBuffer(lscpu_string), String)
+    matrix_osids = _lscpu_table_to_matrix(table)
 
-    @assert issorted(cols.cpuid)
-    @assert length(Set(cols.cpuid)) == length(cols.cpuid) # no duplicates
-
-    ncputhreads = length(cols.cpuid)
-    ncores = length(unique(cols.core))
-
-    # build matrix (of OS indices) and sort it
-    matrix_osids = hcat(cols.cpuid, cols.core, cols.numa, cols.socket)
+    # sort the matrix (with OS IDs) similar to hwloc
     matrix_osids = getsortedby(matrix_osids, (4, 3, 2, 1))
 
     # define logical indices based on the order of appearance (after the sorting above)
@@ -219,6 +185,7 @@ function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
         Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 2]))))
 
     # build sys matrix
+    ncputhreads = size(matrix_osids, 1)
     matrix = hcat(
         1:ncputhreads,
         @view(matrix_osids[:, 1]),
@@ -230,14 +197,14 @@ function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
     )
 
     # enumerate hyperthreads
-    @assert sort(unique(@view(matrix[:, ICORE]))) == 1:ncores
+    ncores = length(unique(matrix[:, ICORE]))
+    # @assert sort(unique(@view(matrix[:, ICORE]))) == 1:ncores
     counts = ones(Int, ncores)
     for r in eachrow(matrix)
         r[ISMT] = counts[r[ICORE]]
         counts[r[ICORE]] += 1
     end
 
-    # matrix = getsortedby(matrix, (ISOCKET, INUMA, ICORE, ISMT))
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, -1)
 end
