@@ -15,6 +15,10 @@ struct TestSystem
     sys::Union{Nothing,SysInfo.Internals.System}
 end
 
+hashwloc(ts::TestSystem) = !isnothing(ts.hwtopo)
+haslscpu(ts::TestSystem) = !isnothing(ts.lscpustr)
+hassys(ts::TestSystem) = !isnothing(ts.sys)
+
 function Base.show(io::IO, ts::TestSystem)
     println(io, "TestSystem: ", ts.name)
     println(io, "→ lscpustr: ", !isnothing(ts.lscpustr))
@@ -76,21 +80,13 @@ function load(name::String; ispath = false)
     return TestSystem(name, cpumodel, cpullvm, lscpustr, hwtopo, sys)
 end
 
-function use(name::String; backend = nothing, kwargs...)
-    ts = load(name; kwargs...)
-    if isnothing(backend)
-        backend = if !isnothing(ts.hwtopo)
-            :hwloc
-        elseif !isnothing(ts.sys)
-            :sys
-        else
-            :lscpu
-        end
-    end
+testsystem2system(name::String; kwargs...) =
+    testsystem2system(load(name; kwargs...); kwargs...)
 
+function testsystem2system(ts::TestSystem; backend = nothing)
     if backend == :lscpu
-        isnothing(ts.lscpustr) && error("Test system doesn't have lscpu string.")
-        SysInfo.Internals.update_stdsys(;
+        !haslscpu(ts) && error("Test system doesn't have lscpu string.")
+        return SysInfo.Internals.getsystem(;
             backend = :lscpu,
             lscpustr = ts.lscpustr,
             ts.name,
@@ -98,8 +94,8 @@ function use(name::String; backend = nothing, kwargs...)
             ts.cpullvm,
         )
     elseif backend == :hwloc
-        isnothing(ts.hwtopo) && error("Test system doesn't have hwtopo.")
-        SysInfo.Internals.update_stdsys(;
+        !hashwloc(ts) && error("Test system doesn't have hwtopo.")
+        return SysInfo.Internals.getsystem(;
             backend = :hwloc,
             hwtopo = ts.hwtopo,
             ts.name,
@@ -107,12 +103,37 @@ function use(name::String; backend = nothing, kwargs...)
             ts.cpullvm,
         )
     elseif backend == :sys
-        isnothing(ts.sys) && error("Test system doesn't have sys.")
-        SysInfo.Internals.sys[] = ts.sys
+        !hassys(ts) && error("Test system doesn't have sys.")
+        return ts.sys
     else
         throw(ArgumentError("Invalid backend."))
     end
+end
+
+use(name::String; backend = nothing, kwargs...) = use(load(name; kwargs...); backend)
+
+function use(ts::TestSystem; backend = nothing)
+    if isnothing(backend)
+        backend = if hashwloc(ts)
+            :hwloc
+        elseif haslscpu(ts)
+            :lscpu
+        else
+            :sys
+        end
+    end
+    @info("Using backend $backend.")
+    SysInfo.Internals.sys[] = testsystem2system(ts; backend)
     return
+end
+
+function with_testsystem(f::F, ts::TestSystem; kwargs...) where {F}
+    use(ts; kwargs...)
+    try
+        return f()
+    finally
+        reset()
+    end
 end
 
 reset() = SysInfo.Internals.update_stdsys()

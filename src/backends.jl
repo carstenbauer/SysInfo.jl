@@ -67,7 +67,7 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
         )
     end
 
-    cks = Hwloc.get_cpukind_info()
+    cks = Hwloc.get_cpukind_info() # TODO use topo arg
     has_multiple_cpu_kinds = !isempty(cks)
     local isocket
     local icore
@@ -77,12 +77,14 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
     inuma = 0
     row = 1
     ngpus = 0
-    matrix = fill(-1, (num_virtual_cores(), 7))
+    ncputhreads = count(hwloc_isa(:PU), topo)
+    matrix = fill(-1, (ncputhreads, 7))
     for obj in topo
         hwloc_isa(obj, :Package) && (isocket = obj.logical_index + 1)
         hwloc_isa(obj, :NUMANode) && (inuma += 1)
         if hwloc_isa(obj, :Core)
             icore = obj.logical_index + 1
+            # icore = obj.os_index
             ismt = 1
         end
         if hwloc_isa(obj, :PU)
@@ -108,7 +110,7 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
             ngpus += 1
         end
     end
-    @assert @view(matrix[:, IID]) == 1:num_virtual_cores()
+    @assert @view(matrix[:, IID]) == 1:ncputhreads
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, ngpus)
 end
@@ -141,12 +143,7 @@ function lscpu_string()
     end
 end
 
-_lscpu2table(lscpustr = nothing)::Union{Nothing,Matrix{String}} =
-    readdlm(IOBuffer(lscpustr), String)
-
-function _lscpu_table_to_columns(
-    table,
-)::NamedTuple{(:idcs, :cpuid, :socket, :numa, :core),NTuple{5,Vector{Int}}}
+function _lscpu_table_to_matrix(table)
     colid_cpu = @views findfirst(isequal("CPU"), table[1, :])
     colid_socket = @views findfirst(isequal("SOCKET"), table[1, :])
     colid_numa = @views findfirst(isequal("NODE"), table[1, :])
@@ -154,100 +151,78 @@ function _lscpu_table_to_columns(
     colid_online = @views findfirst(isequal("ONLINE"), table[1, :])
 
     # only consider online cpus
-    online_cpu_tblidcs = @views findall(
+    online_cpu_tblidcs = findall(
         x -> !(isequal(x, "no") || isequal(x, "ONLINE")),
-        table[:, colid_online],
+        @view(table[:, colid_online]),
     )
-    # if length(online_cpu_tblidcs) != Sys.CPU_THREADS
-    #     @warn(
-    #         "Number of online CPUs ($(length(online_cpu_tblidcs))) doesn't match " *
-    #         "Sys.CPU_THREADS ($(Sys.CPU_THREADS))."
-    #     )
-    # end
 
-    col_cpuid = @views parse.(Int, table[online_cpu_tblidcs, colid_cpu])
-    col_socket = if isnothing(colid_socket)
-        fill(zero(Int), length(online_cpu_tblidcs))
-    else
-        @views parse.(Int, table[online_cpu_tblidcs, colid_socket])
+    # build lscpu matrix (all OS IDs)
+    matrix_osids = zeros(Int, length(online_cpu_tblidcs), 4)
+    for (i, row) in enumerate(eachrow(matrix_osids))
+        j = online_cpu_tblidcs[i]
+        row[1] = parse(Int, table[j, colid_cpu])
+        row[2] = parse(Int, table[j, colid_core])
+        row[3] = isnothing(colid_numa) ? 0 : parse(Int, table[j, colid_numa])
+        row[4] = isnothing(colid_socket) ? 0 : parse(Int, table[j, colid_socket])
     end
-    col_numa = if isnothing(colid_numa)
-        fill(zero(Int), length(online_cpu_tblidcs))
-    else
-        @views parse.(Int, table[online_cpu_tblidcs, colid_numa])
-    end
-    col_core = @views parse.(Int, table[online_cpu_tblidcs, colid_core])
-    idcs = 1:length(online_cpu_tblidcs)
-
-    @assert length(idcs) ==
-            length(col_cpuid) ==
-            length(col_socket) ==
-            length(col_numa) ==
-            length(col_core)
-    return (
-        idcs = idcs,
-        cpuid = col_cpuid,
-        socket = col_socket,
-        numa = col_numa,
-        core = col_core,
-    )
+    return matrix_osids
 end
 
+# lscpu backend
 function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
-    table = _lscpu2table(lscpu_string)
-    cols = _lscpu_table_to_columns(table)
+    table = readdlm(IOBuffer(lscpu_string), String)
+    matrix_osids = _lscpu_table_to_matrix(table)
 
-    cpuids = cols.cpuid
-    @assert issorted(cols.cpuid)
-    @assert length(Set(cols.cpuid)) == length(cols.cpuid) # no duplicates
+    # sort the matrix (with OS IDs) similar to hwloc
+    matrix_osids = getsortedby(matrix_osids, (4, 3, 2, 1))
 
-    ncputhreads = length(cols.cpuid)
-    ncores = length(unique(cols.core))
+    # define logical indices based on the order of appearance (after the sorting above)
+    socketmap =
+        Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 4]))))
+    numamap =
+        Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 3]))))
+    coremap =
+        Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 2]))))
 
-    # sysinfo matrix
-    coreids = unique(cols.core)
-    numaids = unique(cols.numa)
-    socketids = unique(cols.socket)
-    # TODO cols might not be sorted?!
-    coremap = Dict{Int,Int}(n => i for (i, n) in enumerate(coreids))
-    numamap = Dict{Int,Int}(n => i for (i, n) in enumerate(numaids))
-    socketmap = Dict{Int,Int}(n => i for (i, n) in enumerate(socketids))
-
+    # build sys matrix
+    ncputhreads = size(matrix_osids, 1)
     matrix = hcat(
         1:ncputhreads,
-        cols.cpuid,
-        [coremap[c] for c in cols.core],
-        [numamap[n] for n in cols.numa],
-        [socketmap[s] for s in cols.socket],
+        @view(matrix_osids[:, 1]),
+        [coremap[c] for c in @view(matrix_osids[:, 2])],
+        [numamap[c] for c in @view(matrix_osids[:, 3])],
+        [socketmap[c] for c in @view(matrix_osids[:, 4])],
         zeros(Int64, ncputhreads),
         ones(Int64, ncputhreads),
     )
 
-    # goal: same logical indices as for hwloc (compact order)
-    matrix = sortslices(matrix; dims = 1, by = x -> x[3])
-    matrix[:, 1] .= 1:ncputhreads
-
     # enumerate hyperthreads
-    counters = ones(Int, ncores)
-    @views coreordering = sortperm(matrix[:, ICORE])
-    @views for i in eachindex(coreordering)
-        row = coreordering[i]
-        core = matrix[row, ICORE]
-        matrix[row, ISMT] = counters[core]
-        counters[core] += 1
+    ncores = length(unique(matrix[:, ICORE]))
+    # @assert sort(unique(@view(matrix[:, ICORE]))) == 1:ncores
+    counts = ones(Int, ncores)
+    for r in eachrow(matrix)
+        r[ISMT] = counts[r[ICORE]]
+        counts[r[ICORE]] += 1
     end
+
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, -1)
 end
 
+function getsortedby(matrix, bytuple::Tuple; kwargs...)
+    @views sortslices(matrix; dims = 1, by = x -> Tuple(x[i] for i in bytuple), kwargs...)
+end
 
 # consistency check
-function check_consistency_backends()
-    sys_hwloc = getsystem(; backend = :hwloc)
-    sys_lscpu = getsystem(; backend = :lscpu)
-    # sort all by OS ID
-    mat_hwloc = sortslices(sys_hwloc.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
-    mat_lscpu = sortslices(sys_lscpu.matrix, dims = 1, by = x -> x[IOSID])[:, 1:end-1] # exclude efficiency
+function check_consistency_backends(;
+    sys_hwloc = getsystem(; backend = :hwloc),
+    sys_lscpu = getsystem(; backend = :lscpu),
+)
+    # exclude efficiency
+    mat_hwloc = sys_hwloc.matrix[:, 1:end-1]
+    mat_lscpu = sys_lscpu.matrix[:, 1:end-1]
+    mat_noncompact_hwloc = sys_hwloc.matrix_noncompact[:, 1:end-1]
+    mat_noncompact_lscpu = sys_lscpu.matrix_noncompact[:, 1:end-1]
     # compare
-    return mat_hwloc == mat_lscpu
+    return mat_hwloc == mat_lscpu && mat_noncompact_hwloc == mat_noncompact_lscpu
 end

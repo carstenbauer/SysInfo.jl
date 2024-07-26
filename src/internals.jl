@@ -153,10 +153,13 @@ SysInfo.ncorekinds(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, IEFFI
 SysInfo.nsmt(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISMT]))
 SysInfo.hyperthreading_is_enabled(; sys::System = stdsys()) =
     any(>(1), @view(sys.matrix[:, ISMT]))
-SysInfo.id(cpuid::Integer; sys::System = stdsys()) =
-    findfirst(==(cpuid), @view(sys.matrix[:, IOSID]))
-function SysInfo.cpuid(cpuid::Integer; sys::System = stdsys())
-    idx = findfirst(==(cpuid), @view(sys.matrix[:, IID]))
+function SysInfo.id(cpuid::Integer; sys::System = stdsys())
+    idx = findfirst(==(cpuid), @view(sys.matrix[:, IOSID]))
+    isnothing(idx) && return
+    return sys.matrix[idx, IID]
+end
+function SysInfo.cpuid(id::Integer; sys::System = stdsys())
+    idx = findfirst(==(id), @view(sys.matrix[:, IID]))
     isnothing(idx) && return
     return sys.matrix[idx, IOSID]
 end
