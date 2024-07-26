@@ -84,6 +84,7 @@ function System(topo::Hwloc.Object; name, cpumodel, cpullvm)
         hwloc_isa(obj, :NUMANode) && (inuma += 1)
         if hwloc_isa(obj, :Core)
             icore = obj.logical_index + 1
+            # icore = obj.os_index
             ismt = 1
         end
         if hwloc_isa(obj, :PU)
@@ -205,39 +206,38 @@ function System(lscpu_string::AbstractString; name, cpumodel, cpullvm)
     ncputhreads = length(cols.cpuid)
     ncores = length(unique(cols.core))
 
-    # sysinfo matrix
-    coreids = unique(cols.core)
-    numaids = unique(cols.numa)
-    socketids = unique(cols.socket)
-    # TODO cols might not be sorted?!
-    coremap = Dict{Int,Int}(n => i for (i, n) in enumerate(coreids))
-    numamap = Dict{Int,Int}(n => i for (i, n) in enumerate(numaids))
-    socketmap = Dict{Int,Int}(n => i for (i, n) in enumerate(socketids))
+    # build matrix (of OS indices) and sort it
+    matrix_osids = hcat(cols.cpuid, cols.core, cols.numa, cols.socket)
+    matrix_osids = getsortedby(matrix_osids, (4, 3, 2, 1))
 
+    # define logical indices based on the order of appearance (after the sorting above)
+    socketmap =
+        Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 4]))))
+    numamap =
+        Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 3]))))
+    coremap =
+        Dict{Int,Int}(n => i for (i, n) in enumerate(unique(@view(matrix_osids[:, 2]))))
+
+    # build sys matrix
     matrix = hcat(
         1:ncputhreads,
-        cols.cpuid,
-        [coremap[c] for c in cols.core],
-        [numamap[n] for n in cols.numa],
-        [socketmap[s] for s in cols.socket],
+        @view(matrix_osids[:, 1]),
+        [coremap[c] for c in @view(matrix_osids[:, 2])],
+        [numamap[c] for c in @view(matrix_osids[:, 3])],
+        [socketmap[c] for c in @view(matrix_osids[:, 4])],
         zeros(Int64, ncputhreads),
         ones(Int64, ncputhreads),
     )
 
-    # goal: same logical indices as for hwloc (compact order)
-    matrix = sortslices(matrix; dims = 1, by = x -> x[3])
-    matrix[:, 1] .= 1:ncputhreads
-
     # enumerate hyperthreads
-    counters = ones(Int, ncores)
-    @views coreordering = sortperm(matrix[:, ICORE])
-    @views for i in eachindex(coreordering)
-        row = coreordering[i]
-        core = matrix[row, ICORE]
-        matrix[row, ISMT] = counters[core]
-        counters[core] += 1
+    @assert sort(unique(@view(matrix[:, ICORE]))) == 1:ncores
+    counts = ones(Int, ncores)
+    for r in eachrow(matrix)
+        r[ISMT] = counts[r[ICORE]]
+        counts[r[ICORE]] += 1
     end
-    matrix = getsortedby(matrix, (ISOCKET, INUMA, ICORE, ISMT))
+
+    # matrix = getsortedby(matrix, (ISOCKET, INUMA, ICORE, ISMT))
     matrix_noncompact = sortslices(matrix; dims = 1, by = x -> x[ISMT])
     return System(name, cpumodel, cpullvm, matrix, matrix_noncompact, -1)
 end
