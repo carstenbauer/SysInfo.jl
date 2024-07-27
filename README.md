@@ -72,10 +72,16 @@ See [api.jl](src/api.jl) and the `@public`/`export` markers in [SysInfo.jl](src/
 
 ## Adding a test system
 
-We fake-run the test suite of this package on a bunch of interesting systems (e.g. with interesting CPUs or topologies). **You can readily add your system** to the list, which helps us ensure that this package (as well as [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl)) is working on your system.
+We fake-run the test suite of this package on a bunch of interesting systems (e.g. with interesting CPUs or topologies). **You can readily add your interesting system to the list**, which helps us ensure that this package (as well as [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl)) is working on your system.
+
+(Please only add your system if you think it is worth testing on.)
 
 ### How?
 
-On the desired system, run `SysInfo.TestSystems.dump_current_system("NameOfYourSystem")`. This will create a folder (named `NameOfYourSystem`) the you can simply add to the `testsystems` directory of this repository (via a pull request).
+On the desired system, run
+```julia
+SysInfo.TestSystems.dump_current_system("NameOfYourSystem")
+```
+This will create a folder `NameOfYourSystem` in the current directory which you should then add to the `testsystems` directory of this repository (via a pull request).
 
 **Thank you in advance!**
