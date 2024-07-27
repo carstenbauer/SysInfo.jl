@@ -62,4 +62,4 @@ CPU target:     apple-m1
 
 ## Backend
 
-SysInfo.jl uses [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl) as the source of truth. It also has a `lscpu`-based backend that can be used as a replacement or for consistency checks.
+SysInfo.jl uses [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl) as the source of truth. It also has a `lscpu`-based backend that can be used as a replacement or for consistency checks (at least on Linux).
