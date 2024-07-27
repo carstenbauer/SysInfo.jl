@@ -72,7 +72,7 @@ See [api.jl](src/api.jl) and the `@public`/`export` markers in [SysInfo.jl](src/
 
 ## Adding a test system
 
-We fake-run the test suite of this package on a bunch of interesting systems (e.g. with interesting CPUs or topologies). **You can readily add your system** to the list, which helps us ensure that the package is working on your system.
+We fake-run the test suite of this package on a bunch of interesting systems (e.g. with interesting CPUs or topologies). **You can readily add your system** to the list, which helps us ensure that this package (as well as [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl)) is working on your system.
 
 ### How?
 
