@@ -9,7 +9,7 @@ This package will be a backend of [ThreadPinning.jl](https://github.com/carstenb
 * Get a compact summary of the system (topology and key figures).
 * Query various properties of the system, including the number of CPU-threads, physical CPU-cores, and NUMA domains.
 * Two backends: [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl) and `lscpu`.
-* Fake mode: Simulate being on a different system (useful in conjuction with ThreadPinningCore.jl's fake mode).
+* Fake mode: Simulate being on a different system (useful in conjuction with [ThreadPinningCore.jl](https://github.com/carstenbauer/ThreadPinningCore.jl)'s fake mode).
 
 ## Usage
 
