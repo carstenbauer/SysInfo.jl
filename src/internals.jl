@@ -133,7 +133,6 @@ function is_last_hyperthread_in_core(cpuid::Integer; sys::System = stdsys())
     core = cpuid_to_core(cpuid; sys)
     maxsmt = ncputhreads_within_core(core; sys)
     mysmt = cpuid_to_smt(cpuid)
-    @show maxsmt, mysmt
     return mysmt == maxsmt
 end
 
