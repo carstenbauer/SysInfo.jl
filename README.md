@@ -78,4 +78,4 @@ We fake-run the test suite of this package on a bunch of interesting systems (e.
 
 On the desired system, run `SysInfo.TestSystems.dump_current_system("NameOfYourSystem")`. This will create a folder (named `NameOfYourSystem`) the you can simply add to the `testsystems` directory of this repository (via a pull request).
 
-Thank you in advance!
+**Thank you in advance!**
