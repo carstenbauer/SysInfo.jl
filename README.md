@@ -4,6 +4,12 @@
 
 This package will be a backend of [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl). However, you may use it directly to obtain core information about the compute system at hand (number of physical cores, NUMA domains, etc.).
 
+## Features
+
+* Get a compact summary of the system (topology and key figures).
+* Query various properties of the system, including the number of CPU-threads, physical CPU-cores, and NUMA domains.
+* Fake mode: Simulate being on a different system (useful in conjuction with ThreadPinningCore.jl's fake mode).
+
 ## Usage
 
 On a Perlmutter (NERSC) login node:
@@ -56,4 +62,4 @@ CPU target:     apple-m1
 
 ## Backend
 
-As of now, SysInfo.jl is based only on [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl). In the future, we might add more sources of truth.
+SysInfo.jl uses [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl) as the source of truth. It also has a `lscpu`-based backend that can be used as a replacement or for consistency checks.
