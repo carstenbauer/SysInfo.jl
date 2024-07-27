@@ -70,7 +70,7 @@ SysInfo.jl uses [Hwloc.jl](https://github.com/JuliaParallel/Hwloc.jl) as the sou
 
 See [api.jl](src/api.jl) and the `@public`/`export` markers in [SysInfo.jl](src/SysInfo.jl).
 
-## Adding a test system
+## Adding your system as a "test system"
 
 We fake-run the test suite of this package on a bunch of interesting systems (e.g. with interesting CPUs or topologies). **You can readily add your interesting system to the list**, which helps us ensure that this package (as well as [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl)) is working on your system.
 
