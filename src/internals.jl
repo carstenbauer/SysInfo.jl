@@ -46,6 +46,9 @@ function nnuma_within_socket(socket::Integer; sys::System = stdsys())
         ),
     )
 end
+function ncputhreads_within_core(core::Integer; sys::System = stdsys())
+    return count(r -> r[ICORE] == core, eachrow(sys.matrix))
+end
 function ncores_of_kind(kind::Integer; sys::System = stdsys())
     return count(r -> r[IEFFICIENCY] == kind && r[ISMT] == 1, eachrow(sys.matrix))
 end
@@ -114,6 +117,25 @@ function _cpuids_of_X(
 end
 cpuids_of_socket(socketid::Integer; kwargs...) = _cpuids_of_X(socketid, ISOCKET; kwargs...)
 cpuids_of_numa(numaid::Integer; kwargs...) = _cpuids_of_X(numaid, INUMA; kwargs...)
+
+function cpuid_to_smt(cpuid::Integer; sys::System = stdsys())
+    id = SysInfo.id(cpuid)
+    isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
+    return sys.matrix[id, ISMT]
+end
+function cpuid_to_core(cpuid::Integer; sys::System = stdsys())
+    id = SysInfo.id(cpuid)
+    isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
+    return sys.matrix[id, ICORE]
+end
+
+function is_last_hyperthread_in_core(cpuid::Integer; sys::System = stdsys())
+    core = cpuid_to_core(cpuid; sys)
+    maxsmt = ncputhreads_within_core(core; sys)
+    mysmt = cpuid_to_smt(cpuid)
+    @show maxsmt, mysmt
+    return mysmt == maxsmt
+end
 
 """
 # Examples
