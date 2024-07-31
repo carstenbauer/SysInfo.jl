@@ -268,9 +268,9 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
             if SysInfo.ncorekinds(; sys) == 2
                 println(
                     "\t→ ",
-                    ncores_of_kind(1; sys),
+                    SysInfo.ncores_of_kind(1; sys),
                     " \"efficiency cores\", ",
-                    ncores_of_kind(2; sys),
+                    SysInfo.ncores_of_kind(2; sys),
                     " \"performance cores\".",
                 )
             end
