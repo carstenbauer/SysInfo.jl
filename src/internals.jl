@@ -112,7 +112,7 @@ end
 
 function is_last_hyperthread_in_core(cpuid::Integer; sys::System = stdsys())
     core = cpuid_to_core(cpuid; sys)
-    maxsmt = ncputhreads_within_core(core; sys)
+    maxsmt = SysInfo.ncputhreads_within_core(core; sys)
     mysmt = cpuid_to_smt(cpuid)
     return mysmt == maxsmt
 end
