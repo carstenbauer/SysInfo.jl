@@ -1,7 +1,7 @@
 name = "SysInfo"
 uuid = "90a7ee08-a23f-48b9-9006-0e0e2a9e4608"
 authors = ["Carsten Bauer <crstnbr@gmail.com> and contributors"]
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
