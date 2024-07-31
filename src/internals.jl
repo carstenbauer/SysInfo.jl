@@ -25,34 +25,6 @@ function clear_cache()
 end
 
 # internal helpers
-function ncores_within_numa(numa::Integer; sys::System = stdsys())
-    return count(r -> r[INUMA] == numa && r[ISMT] == 1, eachrow(sys.matrix))
-end
-function ncputhreads_within_numa(numa::Integer; sys::System = stdsys())
-    return count(r -> r[INUMA] == numa, eachrow(sys.matrix))
-end
-function ncores_within_socket(socket::Integer; sys::System = stdsys())
-    return count(r -> r[ISOCKET] == socket && r[ISMT] == 1, eachrow(sys.matrix))
-end
-function ncputhreads_within_socket(socket::Integer; sys::System = stdsys())
-    return count(r -> r[ISOCKET] == socket, eachrow(sys.matrix))
-end
-function nnuma_within_socket(socket::Integer; sys::System = stdsys())
-    # OPT: Perf improve?
-    return length(
-        unique(
-            r -> r[INUMA],
-            Iterators.filter(r -> r[ISOCKET] == socket, eachrow(sys.matrix)),
-        ),
-    )
-end
-function ncputhreads_within_core(core::Integer; sys::System = stdsys())
-    return count(r -> r[ICORE] == core, eachrow(sys.matrix))
-end
-function ncores_of_kind(kind::Integer; sys::System = stdsys())
-    return count(r -> r[IEFFICIENCY] == kind && r[ISMT] == 1, eachrow(sys.matrix))
-end
-
 ngpus(; sys::System = stdsys()) = sys.ngpus
 
 function cpuids(; sys::System = stdsys(), compact = false, idcs = Colon())
@@ -63,10 +35,12 @@ function cpuids_of_core(coreid::Integer; sys::System = stdsys(), idcs = Colon())
     nsmt = SysInfo.nsmt(; sys)
     res = Vector{Int}(undef, nsmt)
     i = 1
+    iwrite = 1
     for r in eachrow(sys.matrix)
         if r[ICORE] == coreid
             if typeof(idcs) == Colon || i in idcs
-                res[i] = r[IOSID]
+                res[iwrite] = r[IOSID]
+                iwrite += 1
             end
             i += 1
         end
@@ -95,10 +69,12 @@ function _cpuids_of_X(
     breakidx = typeof(idcs) == Colon ? ncputhreads : maximum(idcs)
     res = Vector{Int}(undef, ncputhreads)
     i = 1
+    iwrite = 1
     for r in eachrow(mat)
         if r[xid] == id
             if typeof(idcs) == Colon || i in idcs
-                res[i] = r[IOSID]
+                res[iwrite] = r[IOSID]
+                iwrite += 1
             end
             i += 1
             if i > breakidx
@@ -128,6 +104,11 @@ function cpuid_to_core(cpuid::Integer; sys::System = stdsys())
     isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
     return sys.matrix[id, ICORE]
 end
+function cpuid_to_socket(cpuid::Integer; sys::System = stdsys())
+    id = SysInfo.id(cpuid)
+    isnothing(id) && throw(ArgumentError("Invalid CPU ID."))
+    return sys.matrix[id, ISOCKET]
+end
 
 function is_last_hyperthread_in_core(cpuid::Integer; sys::System = stdsys())
     core = cpuid_to_core(cpuid; sys)
@@ -139,13 +120,13 @@ end
 """
 # Examples
 ```julia
-interweave([1,2,3,4], [5,6,7,8]) == [1,5,2,6,3,7,4,8]
+roundrobin_equal_length([1,2,3,4], [5,6,7,8]) == [1,5,2,6,3,7,4,8]
 ```
 ```julia
-interweave(1:4, 5:8, 9:12) == [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
+roundrobin_equal_length(1:4, 5:8, 9:12) == [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
 ```
 """
-function interweave(arrays::AbstractVector...)
+function roundrobin_equal_length(arrays::AbstractVector...)
     # check input args
     narrays = length(arrays)
     narrays > 0 || throw(ArgumentError("No input arguments provided."))
@@ -153,7 +134,7 @@ function interweave(arrays::AbstractVector...)
     for a in arrays
         length(a) == len || throw(ArgumentError("Only same length inputs supported."))
     end
-    # interweave
+    # roundrobin
     res = zeros(eltype(first(arrays)), len * narrays)
     c = 1
     for i in eachindex(first(arrays))
@@ -165,6 +146,42 @@ function interweave(arrays::AbstractVector...)
     return res
 end
 
+"""
+# Examples
+```julia
+roundrobin([1,2,3,4], [5,6,7,8]) == [1,5,2,6,3,7,4,8]
+```
+```julia
+roundrobin([1,2], [3,4,5], [6,7,8,9]) == [1, 3, 6, 2, 4, 7, 5, 8, 9]
+```
+"""
+function roundrobin(arrays::AbstractVector...)
+    # check input args
+    narrays = length(arrays)
+    narrays > 0 || throw(ArgumentError("No input arguments provided."))
+    len = length(first(arrays))
+    # are arrays of equal length?
+    all_equal_length = true
+    for a in arrays
+        if length(a) != len
+            all_equal_length = false
+            break
+        end
+    end
+    # decide what to do
+    if all_equal_length
+        return roundrobin_equal_length(arrays...)
+    else
+        common_length, iarray_min = findmin(length, arrays)
+        # all arrays
+        part1 = roundrobin_equal_length((@view(a[1:common_length]) for a in arrays)...)
+        # remaining arrays
+        arrays_new = (a for (i, a) in enumerate(arrays) if i != iarray_min)
+        part2 = roundrobin((@view(a[common_length+1:end]) for a in arrays_new)...)
+        return vcat(part1, part2)
+    end
+end
+
 # API functions
 SysInfo.ncputhreads(; sys::System = stdsys()) = size(sys.matrix, 1)
 SysInfo.ncores(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ICORE]))
@@ -172,6 +189,33 @@ SysInfo.nnuma(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, INUMA]))
 SysInfo.nsockets(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISOCKET]))
 SysInfo.ncorekinds(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, IEFFICIENCY]))
 SysInfo.nsmt(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISMT]))
+function SysInfo.ncputhreads_within_core(core::Integer; sys::System = stdsys())
+    return count(r -> r[ICORE] == core, eachrow(sys.matrix))
+end
+function SysInfo.ncputhreads_within_numa(numa::Integer; sys::System = stdsys())
+    return count(r -> r[INUMA] == numa, eachrow(sys.matrix))
+end
+function SysInfo.ncputhreads_within_socket(socket::Integer; sys::System = stdsys())
+    return count(r -> r[ISOCKET] == socket, eachrow(sys.matrix))
+end
+function SysInfo.ncores_within_numa(numa::Integer; sys::System = stdsys())
+    return count(r -> r[INUMA] == numa && r[ISMT] == 1, eachrow(sys.matrix))
+end
+function SysInfo.ncores_within_socket(socket::Integer; sys::System = stdsys())
+    return count(r -> r[ISOCKET] == socket && r[ISMT] == 1, eachrow(sys.matrix))
+end
+function SysInfo.nnuma_within_socket(socket::Integer; sys::System = stdsys())
+    # OPT: Perf improve?
+    return length(
+        unique(
+            r -> r[INUMA],
+            Iterators.filter(r -> r[ISOCKET] == socket, eachrow(sys.matrix)),
+        ),
+    )
+end
+function SysInfo.ncores_of_kind(kind::Integer; sys::System = stdsys())
+    return count(r -> r[IEFFICIENCY] == kind && r[ISMT] == 1, eachrow(sys.matrix))
+end
 SysInfo.hyperthreading_is_enabled(; sys::System = stdsys()) =
     any(>(1), @view(sys.matrix[:, ISMT]))
 function SysInfo.id(cpuid::Integer; sys::System = stdsys())
@@ -213,9 +257,9 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
         println("∘ CPU ", socket, ": ")
         println(
             "\t→ ",
-            ncores_within_socket(socket; sys),
+            SysInfo.ncores_within_socket(socket; sys),
             " cores (",
-            ncputhreads_within_socket(socket; sys),
+            SysInfo.ncputhreads_within_socket(socket; sys),
             " CPU-threads",
             nsmt == 1 ? "" : " due to $(nsmt)-way SMT",
             ")",
@@ -231,7 +275,7 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
                 )
             end
         end
-        n = nnuma_within_socket(socket; sys)
+        n = SysInfo.nnuma_within_socket(socket; sys)
         println("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
     end
 
@@ -279,7 +323,7 @@ function _print_sysinfo_header(;
             "NUMA domains: \t",
             SysInfo.nnuma(; sys),
             " (",
-            ncores_within_numa(1; sys),
+            SysInfo.ncores_within_numa(1; sys),
             " cores each)",
         )
     end
@@ -323,7 +367,7 @@ function SysInfo.sockets(
 )
     sockets = typeof(idcs) == Colon ? (1:SysInfo.nsockets()) : idcs
     cpuids_sockets = [cpuids_of_socket(s; kwargs...) for s in sockets]
-    cpuids = interweave(cpuids_sockets...)
+    cpuids = roundrobin(cpuids_sockets...)
     shuffle && Random.shuffle!(cpuids)
     return cpuids
 end
@@ -334,7 +378,7 @@ function SysInfo.numas(
 )
     numas = typeof(idcs) == Colon ? (1:SysInfo.nnuma()) : idcs
     cpuids_numas = [cpuids_of_numa(s; kwargs...) for s in numas]
-    cpuids = interweave(cpuids_numas...)
+    cpuids = roundrobin(cpuids_numas...)
     shuffle && Random.shuffle!(cpuids)
     return cpuids
 end

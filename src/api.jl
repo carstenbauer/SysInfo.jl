@@ -53,7 +53,7 @@ Returns all CPU IDs of the system/compute node (logical index, starts at 1).
 By default, an "cores before hyperthreads" ordering is used. Set `compact=true` if you want
 compact ordering. Set `shuffle=true` to randomize.
 
-Optional second argument: Logical indices to select a subset of the CPU-threads.
+Optional argument: Logical indices to select a subset of the CPU-threads.
 """
 function node end
 
@@ -127,3 +127,53 @@ efficiency of all the CPU-cores (i.e. an efficiency value of 1). If
 there is only a single CPU-core kind, the return value is false for all CPU IDs.
 """
 function isefficiencycore end
+
+
+"""
+    ncputhreads_within_core(core::Integer)
+
+Returns the number of CPU-threads inside of the given `core`.
+"""
+function ncputhreads_within_core end
+
+"""
+    ncputhreads_within_numa(numa::Integer)
+
+Returns the number of CPU-threads inside of the given `numa` domain.
+"""
+function ncputhreads_within_numa end
+
+"""
+    ncputhreads_within_socket(socket::Integer)
+
+Returns the number of CPU-threads the belong to the given `socket`/CPU.
+"""
+function ncputhreads_within_socket end
+
+"""
+    ncores_within_numa(numa::Integer)
+
+Returns the number of CPU-cores the belong to the given `numa` domain.
+"""
+function ncores_within_numa end
+
+"""
+    ncores_within_socket(socket::Integer)
+
+Returns the number of CPU-cores the belong to the given `socket`/CPU.
+"""
+function ncores_within_socket end
+
+"""
+    nnuma_within_socket(socket::Integer)
+
+Returns the number of NUMA domains the belong to the given `socket`/CPU.
+"""
+function nnuma_within_socket end
+
+"""
+    ncores_of_kind(kind::Integer)
+
+Returns the number of CPU-cores that are of the given `kind` (efficiency).
+"""
+function ncores_of_kind end
