@@ -311,9 +311,9 @@ function _print_sysinfo_header(;
                 println(
                     io,
                     "Core kinds: \t",
-                    ncores_of_kind(1; sys),
+                    SysInfo.ncores_of_kind(1; sys),
                     " \"efficiency cores\", ",
-                    ncores_of_kind(2; sys),
+                    SysInfo.ncores_of_kind(2; sys),
                     " \"performance cores\".",
                 )
             end
