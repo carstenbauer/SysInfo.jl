@@ -1,0 +1,8 @@
+2024-08-07
+lfl01.mpi-hd.mpg.de
+1.11.0-rc2
+0.2.5
+3.3.0
+AMD EPYC 9654 96-Core Processor
+znver4
+192
