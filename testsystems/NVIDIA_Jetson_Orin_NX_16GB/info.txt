@@ -1,0 +1,8 @@
+2024-08-07
+batlab-lxarm01
+1.11.0-rc2
+0.2.5
+3.3.0
+Cortex-A78AE
+generic
+8
