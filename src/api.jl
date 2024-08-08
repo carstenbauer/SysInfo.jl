@@ -130,46 +130,54 @@ function isefficiencycore end
 
 
 """
-    ncputhreads_within_core(core::Integer)
+    ncputhreads_of_core(core::Integer)
 
 Returns the number of CPU-threads inside of the given `core`.
 """
-function ncputhreads_within_core end
+function ncputhreads_of_core end
 
 """
-    ncputhreads_within_numa(numa::Integer)
+    ncputhreads_of_numa(numa::Integer)
 
 Returns the number of CPU-threads inside of the given `numa` domain.
 """
-function ncputhreads_within_numa end
+function ncputhreads_of_numa end
 
 """
-    ncputhreads_within_socket(socket::Integer)
+    ncputhreads_of_socket(socket::Integer)
 
 Returns the number of CPU-threads the belong to the given `socket`/CPU.
 """
-function ncputhreads_within_socket end
+function ncputhreads_of_socket end
 
 """
-    ncores_within_numa(numa::Integer)
+    ncores_of_numa(numa::Integer)
 
 Returns the number of CPU-cores the belong to the given `numa` domain.
 """
-function ncores_within_numa end
+function ncores_of_numa end
 
 """
-    ncores_within_socket(socket::Integer)
+    ncores_of_socket(socket::Integer)
 
 Returns the number of CPU-cores the belong to the given `socket`/CPU.
 """
-function ncores_within_socket end
+function ncores_of_socket end
 
 """
-    nnuma_within_socket(socket::Integer)
+    nnuma_of_socket(socket::Integer)
 
 Returns the number of NUMA domains the belong to the given `socket`/CPU.
 """
-function nnuma_within_socket end
+function nnuma_of_socket end
+
+"""
+    nsockets_of_numa(numa::Integer)
+
+Returns the number of CPU sockets that have access to the given NUMA domain.
+If the returned value is > 1, the NUMA domain is shared.
+"""
+function nsockets_of_numa end
 
 """
     ncores_of_kind(kind::Integer)
@@ -177,3 +185,17 @@ function nnuma_within_socket end
 Returns the number of CPU-cores that are of the given `kind` (efficiency).
 """
 function ncores_of_kind end
+
+"""
+    sockets_of_numa(numa::Integer)
+
+Returns the logical IDs of the CPU sockets that have access to the given NUMA domain.
+"""
+function sockets_of_numa end
+
+"""
+    numa_of_socket(socket::Integer)
+
+Returns the logical IDs of the NUMA domains that the given CPU socket has access to.
+"""
+function numa_of_socket end

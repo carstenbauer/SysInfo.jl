@@ -27,20 +27,26 @@ function basic_tests()
         @test SysInfo.ncorekinds() isa Integer
         @test SysInfo.ncorekinds() > 0
 
-        @test SysInfo.ncputhreads_within_core(1) isa Integer
+        @test SysInfo.ncputhreads_of_core(1) isa Integer
         nsmt = SysInfo.nsmt()
         for c = 1:SysInfo.ncputhreads()
-            @test SysInfo.ncputhreads_within_core(c) <= nsmt
+            @test SysInfo.ncputhreads_of_core(c) <= nsmt
         end
 
-        @test SysInfo.ncputhreads_within_numa(1) isa Integer
-        @test SysInfo.ncputhreads_within_numa(1) > 0
-        @test SysInfo.ncputhreads_within_socket(1) isa Integer
-        @test SysInfo.ncputhreads_within_socket(1) > 0
-        @test SysInfo.ncores_within_numa(1) isa Integer
-        @test SysInfo.ncores_within_numa(1) > 0
-        @test SysInfo.ncores_within_socket(1) isa Integer
-        @test SysInfo.ncores_within_socket(1) > 0
+        @test SysInfo.ncputhreads_of_numa(1) isa Integer
+        @test SysInfo.ncputhreads_of_numa(1) > 0
+        @test SysInfo.ncputhreads_of_socket(1) isa Integer
+        @test SysInfo.ncputhreads_of_socket(1) > 0
+        @test SysInfo.ncores_of_numa(1) isa Integer
+        @test SysInfo.ncores_of_numa(1) > 0
+        @test SysInfo.ncores_of_socket(1) isa Integer
+        @test SysInfo.ncores_of_socket(1) > 0
+        @test SysInfo.nsockets_of_numa(1) isa Integer
+        @test SysInfo.nsockets_of_numa(1) > 0
+        @test SysInfo.nnuma_of_socket(1) isa Integer
+        @test SysInfo.nnuma_of_socket(1) > 0
+        @test SysInfo.sockets_of_numa(1) isa Vector{Int}
+        @test SysInfo.numa_of_socket(1) isa Vector{Int}
 
         @test SysInfo.ishyperthread(SysInfo.cpuid(1)) isa Bool
         @test SysInfo.isefficiencycore(SysInfo.cpuid(1)) isa Bool
@@ -76,7 +82,7 @@ function index_tests()
         for cpuid in SysInfo.core(icore)
             @test SysInfo.Internals.cpuid_to_core(cpuid) == icore
         end
-        if SysInfo.ncputhreads_within_core(icore) > 1
+        if SysInfo.ncputhreads_of_core(icore) > 1
             @test SysInfo.ishyperthread(only(SysInfo.core(icore, 2)))
         end
 

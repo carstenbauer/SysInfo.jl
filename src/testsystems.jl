@@ -72,11 +72,11 @@ function load(name::String; ispath = false)
     catch
         @info("Couldn't process \"hwtopo.bin\". Moving on.")
     end
-    try
-        sys = Serialization.deserialize(joinpath(dir, "sys.bin"))
-    catch
-        @info("Couldn't process \"sys.bin\". Moving on.")
-    end
+    # try
+    #     sys = Serialization.deserialize(joinpath(dir, "sys.bin"))
+    # catch
+    #     @info("Couldn't process \"sys.bin\". Moving on.")
+    # end
     return TestSystem(name, cpumodel, cpullvm, lscpustr, hwtopo, sys)
 end
 
@@ -168,12 +168,12 @@ function dump_current_system(dirname = "sysinfo_dump")
         catch
             @info("Couldn't create \"hwtopo.bin\". Moving on.")
         end
-        try
-            sys = SysInfo.Internals.getsystem()
-            Serialization.serialize("sys.bin", sys)
-        catch
-            @info("Couldn't create \"sys.bin\". Moving on.")
-        end
+        # try
+        #     sys = SysInfo.Internals.getsystem()
+        #     Serialization.serialize("sys.bin", sys)
+        # catch
+        #     @info("Couldn't create \"sys.bin\". Moving on.")
+        # end
         @info(
             "\n\nPlease make a PR to https://github.com/carstenbauer/SysInfo.jl in which you add the created folder as \"testsystems/NameOfYourSystem\".\n\nThank you very much! ❤\n\n"
         )

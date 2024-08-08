@@ -112,7 +112,7 @@ end
 
 function is_last_hyperthread_in_core(cpuid::Integer; sys::System = stdsys())
     core = cpuid_to_core(cpuid; sys)
-    maxsmt = SysInfo.ncputhreads_within_core(core; sys)
+    maxsmt = SysInfo.ncputhreads_of_core(core; sys)
     mysmt = cpuid_to_smt(cpuid)
     return mysmt == maxsmt
 end
@@ -189,22 +189,22 @@ SysInfo.nnuma(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, INUMA]))
 SysInfo.nsockets(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISOCKET]))
 SysInfo.ncorekinds(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, IEFFICIENCY]))
 SysInfo.nsmt(; sys::System = stdsys()) = maximum(@view(sys.matrix[:, ISMT]))
-function SysInfo.ncputhreads_within_core(core::Integer; sys::System = stdsys())
+function SysInfo.ncputhreads_of_core(core::Integer; sys::System = stdsys())
     return count(r -> r[ICORE] == core, eachrow(sys.matrix))
 end
-function SysInfo.ncputhreads_within_numa(numa::Integer; sys::System = stdsys())
+function SysInfo.ncputhreads_of_numa(numa::Integer; sys::System = stdsys())
     return count(r -> r[INUMA] == numa, eachrow(sys.matrix))
 end
-function SysInfo.ncputhreads_within_socket(socket::Integer; sys::System = stdsys())
+function SysInfo.ncputhreads_of_socket(socket::Integer; sys::System = stdsys())
     return count(r -> r[ISOCKET] == socket, eachrow(sys.matrix))
 end
-function SysInfo.ncores_within_numa(numa::Integer; sys::System = stdsys())
+function SysInfo.ncores_of_numa(numa::Integer; sys::System = stdsys())
     return count(r -> r[INUMA] == numa && r[ISMT] == 1, eachrow(sys.matrix))
 end
-function SysInfo.ncores_within_socket(socket::Integer; sys::System = stdsys())
+function SysInfo.ncores_of_socket(socket::Integer; sys::System = stdsys())
     return count(r -> r[ISOCKET] == socket && r[ISMT] == 1, eachrow(sys.matrix))
 end
-function SysInfo.nnuma_within_socket(socket::Integer; sys::System = stdsys())
+function SysInfo.nnuma_of_socket(socket::Integer; sys::System = stdsys())
     # OPT: Perf improve?
     return length(
         unique(
@@ -212,6 +212,37 @@ function SysInfo.nnuma_within_socket(socket::Integer; sys::System = stdsys())
             Iterators.filter(r -> r[ISOCKET] == socket, eachrow(sys.matrix)),
         ),
     )
+end
+function SysInfo.nsockets_of_numa(numa::Integer; sys::System = stdsys())
+    # OPT: Perf improve?
+    return length(
+        unique(
+            r -> r[ISOCKET],
+            Iterators.filter(r -> r[INUMA] == numa, eachrow(sys.matrix)),
+        ),
+    )
+end
+function SysInfo.sockets_of_numa(numa::Integer; sys::System = stdsys())
+    # OPT: Perf improve?
+    sockets_of_numa = Int[]
+    for row in Iterators.filter(r -> r[INUMA] == numa, eachrow(sys.matrix))
+        socket = row[ISOCKET]
+        if !(socket in sockets_of_numa)
+            push!(sockets_of_numa, socket)
+        end
+    end
+    return sockets_of_numa
+end
+function SysInfo.numa_of_socket(socket::Integer; sys::System = stdsys())
+    # OPT: Perf improve?
+    numa_of_socket = Int[]
+    for row in Iterators.filter(r -> r[ISOCKET] == socket, eachrow(sys.matrix))
+        numa = row[INUMA]
+        if !(numa in numa_of_socket)
+            push!(numa_of_socket, numa)
+        end
+    end
+    return numa_of_socket
 end
 function SysInfo.ncores_of_kind(kind::Integer; sys::System = stdsys())
     return count(r -> r[IEFFICIENCY] == kind && r[ISMT] == 1, eachrow(sys.matrix))
@@ -257,9 +288,9 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
         println("∘ CPU ", socket, ": ")
         println(
             "\t→ ",
-            SysInfo.ncores_within_socket(socket; sys),
+            SysInfo.ncores_of_socket(socket; sys),
             " cores (",
-            SysInfo.ncputhreads_within_socket(socket; sys),
+            SysInfo.ncputhreads_of_socket(socket; sys),
             " CPU-threads",
             nsmt == 1 ? "" : " due to $(nsmt)-way SMT",
             ")",
@@ -275,8 +306,26 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
                 )
             end
         end
-        n = SysInfo.nnuma_within_socket(socket; sys)
-        println("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
+        numas = SysInfo.numa_of_socket(socket; sys)
+        n = length(numas)
+        sockets_of_numa = SysInfo.sockets_of_numa.(numas; sys)
+        print("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
+        if any(x -> length(x) != 1, sockets_of_numa)
+            # at least one NUMA is shared
+            if n == 1
+                socketids = only(sockets_of_numa)
+                print(
+                    " (shared with CPU",
+                    length(socketids) == 2 ? "" : "s:",
+                    " ",
+                    join((i for i in socketids if i != socket), ','),
+                    ")",
+                )
+            else
+                print(" (some of them are shared with other CPUs)")
+            end
+        end
+        println()
     end
 
     if gpu && ngpus(; sys) > 0
@@ -318,14 +367,13 @@ function _print_sysinfo_header(;
                 )
             end
         end
-        println(
-            io,
-            "NUMA domains: \t",
-            SysInfo.nnuma(; sys),
-            " (",
-            SysInfo.ncores_within_numa(1; sys),
-            " cores each)",
-        )
+        nnuma = SysInfo.nnuma(; sys)
+        ncoresfirstnuma = SysInfo.ncores_of_numa(1; sys)
+        print(io, "NUMA domains: \t", nnuma)
+        if all(n -> SysInfo.ncores_of_numa(n; sys) == ncoresfirstnuma, 1:nnuma)
+            print(" (", ncoresfirstnuma, " cores each)")
+        end
+        println()
     end
 end
 
