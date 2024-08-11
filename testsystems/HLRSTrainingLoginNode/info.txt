@@ -1,0 +1,8 @@
+2024-08-11
+cl7fr1
+1.10.4
+0.3.0
+3.3.0
+Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz
+sandybridge
+32

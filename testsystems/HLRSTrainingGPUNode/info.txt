@@ -1,0 +1,8 @@
+2024-08-11
+n010301
+1.10.4
+0.3.0
+3.3.0
+Intel(R) Xeon(R) Gold 6240 CPU @ 2.60GHz
+cascadelake
+72
