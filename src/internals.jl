@@ -279,14 +279,14 @@ function SysInfo.isefficiencycore(cpuid::Integer; sys::System = stdsys())
 end
 
 
-function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
-    _print_sysinfo_header(; sys)
+function SysInfo.sysinfo(io = stdout; sys::System = stdsys(), gpu = true)
+    _print_sysinfo_header(;io, sys)
 
-    println()
+    println(io)
     nsmt = SysInfo.nsmt(; sys)
     for socket = 1:SysInfo.nsockets(; sys)
-        println("∘ CPU ", socket, ": ")
-        println(
+        println(io, "∘ CPU ", socket, ": ")
+        println(io, 
             "\t→ ",
             SysInfo.ncores_of_socket(socket; sys),
             " cores (",
@@ -298,6 +298,7 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
         if SysInfo.ncorekinds(; sys) != 1
             if SysInfo.ncorekinds(; sys) == 2
                 println(
+                    io, 
                     "\t→ ",
                     SysInfo.ncores_of_kind(1; sys),
                     " \"efficiency cores\", ",
@@ -309,12 +310,13 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
         numas = SysInfo.numa_of_socket(socket; sys)
         n = length(numas)
         sockets_of_numa = SysInfo.sockets_of_numa.(numas; sys)
-        print("\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
+        print(io, "\t→ ", n, " NUMA domain", n > 1 ? "s" : "")
         if any(x -> length(x) != 1, sockets_of_numa)
             # at least one NUMA is shared
             if n == 1
                 socketids = only(sockets_of_numa)
                 print(
+                    io,
                     " (shared with CPU",
                     length(socketids) == 2 ? "" : "s:",
                     " ",
@@ -322,14 +324,14 @@ function SysInfo.sysinfo(; sys::System = stdsys(), gpu = true)
                     ")",
                 )
             else
-                print(" (some of them are shared with other CPUs)")
+                print(io, " (some of them are shared with other CPUs)")
             end
         end
-        println()
+        println(io)
     end
 
     if gpu && ngpus(; sys) > 0
-        println("\nDetected GPUs: \t", ngpus(; sys))
+        println(io, "\nDetected GPUs: \t", ngpus(; sys))
     end
     return
 end
@@ -371,9 +373,9 @@ function _print_sysinfo_header(;
         ncoresfirstnuma = SysInfo.ncores_of_numa(1; sys)
         print(io, "NUMA domains: \t", nnuma)
         if all(n -> SysInfo.ncores_of_numa(n; sys) == ncoresfirstnuma, 1:nnuma)
-            print(" (", ncoresfirstnuma, " cores each)")
+            print(io, " (", ncoresfirstnuma, " cores each)")
         end
-        println()
+        println(io)
     end
 end
 

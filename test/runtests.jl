@@ -14,6 +14,7 @@ const IEFFICIENCY = SysInfo.Internals.IEFFICIENCY
 function basic_tests()
     @testset "basic_tests" begin
         @test isnothing(sysinfo()) # exported
+        @test isnothing(sysinfo(IOBuffer())) # works at least in principle
         @test SysInfo.ncputhreads() isa Integer
         @test SysInfo.ncputhreads() > 0
         @test SysInfo.ncores() isa Integer
